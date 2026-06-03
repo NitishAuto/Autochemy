@@ -19,7 +19,7 @@ AutoChemy aims to make computational chemistry more accessible by combining comm
 
 Current Release
 
-Version: Beta v1.2
+Version: Beta v1.1
 Platform: Windows
 
 License
