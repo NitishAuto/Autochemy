@@ -1,0 +1,109 @@
+{
+  "hpc_1": {
+    "type": "HPC",
+    "machine_mode": "Dynamic",
+    "script_sub_mode": "DynamicScript",
+    "custom_script": "#!/bin/bash\n#PBS -N {job_name}\n#PBS -l nodes={nodes}:ppn={nprocs}\n#PBS -q {queue}\n#PBS -l walltime={time}\n\n# 1. Setup Logging & Directory\n# In PBS, jobs start in home directory by default, so we switch to submission dir\ncd $PBS_O_WORKDIR\nSCRIPT_DIR=$PBS_O_WORKDIR\n\necho \"==== Execution Summary ====\"\necho \"Start Time: $(date)\"\necho \"Working Dir: $SCRIPT_DIR\"\necho \"Job Name: {job_name}\"\necho \"PBS Job ID: $PBS_JOBID\"\necho \"===========================\"\n\n# 2. Setup Environment\n{mod_prefix}module purge\n{mod_prefix}module load {mpi_module}\n{mod_prefix}module load {orca_module}\n{path_prefix}export PATH=\"{mpi_path}/bin:$PATH\"\n{path_prefix}export LD_LIBRARY_PATH=\"{mpi_path}/lib:$LD_LIBRARY_PATH\"\n{path_prefix}export PATH=\"{orca_path}:$PATH\"\n\nexport RSH_COMMAND=\"/usr/bin/ssh -x\"\n\n# 3. Create Unique Scratch Directory\nSCRATCH_BASE=\"{scratch_dir}/$USER/ORCA_JOBS\"\nmkdir -p \"$SCRATCH_BASE\"\ntdir=$(mktemp -d \"$SCRATCH_BASE/orcajob_{job_name}_XXXXXX\")\necho \"Temp Job Dir: $tdir\"\n\n# 4. Copy Input Files to Scratch\ncp \"$SCRIPT_DIR/{job_name}.inp\" \"$tdir/\"\ncp \"$SCRIPT_DIR\"/*.xyz \"$tdir/\" 2>/dev/null || true\ncp \"$SCRIPT_DIR\"/*.hess \"$tdir/\" 2>/dev/null || true\ncp \"$SCRIPT_DIR\"/*.gbw \"$tdir/\" 2>/dev/null || true\n\n# Create nodefile in SCRATCH for OpenMPI\ncat $PBS_NODEFILE > \"$tdir/{job_name}.nodes\"\n\ncd \"$tdir\"\n\n# 5. Run ORCA\necho \"Executing ORCA...\"\n{orca_cmd} \"{job_name}.inp\" > \"$SCRIPT_DIR/{job_name}.out\"\n\n# 6. Cleanup and Transfer\necho \"Job finished. Cleaning up...\"\nrm -f \"$tdir/{job_name}_D00\"*\nmv \"$tdir/\"* \"$SCRIPT_DIR/\"\necho \"$(date): Script completed successfully.\"",
+    "partitions": [
+      {
+        "name": "large",
+        "cores": "12",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "middle",
+        "cores": "8",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "small",
+        "cores": "4",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "student",
+        "cores": "2",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      }
+    ],
+    "queue_system": "PBS",
+    "config_type": "Modules",
+    "orca_module": "orca-5.0.3",
+    "mpi_module": "openmpi-4.1.1 ",
+    "orca_path": "/apps/codes/orca/orca_5_0_3_linux_x86-64_openmpi411",
+    "mpi_path": "/apps/libs/openmpi/4.1.1/bin:$PATH",
+    "scratch_dir": "/SCRATCH/$USER/"
+  },
+  "hpc_2": {
+    "type": "HPC",
+    "machine_mode": "Dynamic",
+    "script_sub_mode": "DynamicScript",
+    "custom_script": "#!/bin/bash\n#PBS -N {job_name}\n#PBS -l nodes={nodes}:ppn={nprocs}\n#PBS -q {queue}\n#PBS -l walltime={time}\n\n# 1. Setup Logging & Directory\n# In PBS, jobs start in home directory by default, so we switch to submission dir\ncd $PBS_O_WORKDIR\nSCRIPT_DIR=$PBS_O_WORKDIR\n\necho \"==== Execution Summary ====\"\necho \"Start Time: $(date)\"\necho \"Working Dir: $SCRIPT_DIR\"\necho \"Job Name: {job_name}\"\necho \"PBS Job ID: $PBS_JOBID\"\necho \"===========================\"\n\n# 2. Setup Environment\n{mod_prefix}module purge\n{mod_prefix}module load {mpi_module}\n{mod_prefix}module load {orca_module}\n{path_prefix}export PATH=\"{mpi_path}/bin:$PATH\"\n{path_prefix}export LD_LIBRARY_PATH=\"{mpi_path}/lib:$LD_LIBRARY_PATH\"\n{path_prefix}export PATH=\"{orca_path}:$PATH\"\n\nexport RSH_COMMAND=\"/usr/bin/ssh -x\"\n\n# 3. Create Unique Scratch Directory\nSCRATCH_BASE=\"{scratch_dir}/$USER/ORCA_JOBS\"\nmkdir -p \"$SCRATCH_BASE\"\ntdir=$(mktemp -d \"$SCRATCH_BASE/orcajob_{job_name}_XXXXXX\")\necho \"Temp Job Dir: $tdir\"\n\n# 4. Copy Input Files to Scratch\ncp \"$SCRIPT_DIR/{job_name}.inp\" \"$tdir/\"\ncp \"$SCRIPT_DIR\"/*.xyz \"$tdir/\" 2>/dev/null || true\ncp \"$SCRIPT_DIR\"/*.hess \"$tdir/\" 2>/dev/null || true\ncp \"$SCRIPT_DIR\"/*.gbw \"$tdir/\" 2>/dev/null || true\n\n# Create nodefile in SCRATCH for OpenMPI\ncat $PBS_NODEFILE > \"$tdir/{job_name}.nodes\"\n\ncd \"$tdir\"\n\n# 5. Run ORCA\necho \"Executing ORCA...\"\n{orca_cmd} \"{job_name}.inp\" > \"$SCRIPT_DIR/{job_name}.out\"\n\n# 6. Cleanup and Transfer\necho \"Job finished. Cleaning up...\"\nrm -f \"$tdir/{job_name}_D00\"*\nmv \"$tdir/\"* \"$SCRIPT_DIR/\"\necho \"$(date): Script completed successfully.\"",
+    "partitions": [
+      {
+        "name": "hmqueue",
+        "cores": "32",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "newsmallqueue",
+        "cores": "32",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "Verylarge",
+        "cores": "20",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "large",
+        "cores": "12",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "medium",
+        "cores": "8",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "small",
+        "cores": "4",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      },
+      {
+        "name": "student",
+        "cores": "2",
+        "nodes": "1",
+        "time": "24:00:00",
+        "custom_vars": {}
+      }
+    ],
+    "queue_system": "PBS",
+    "config_type": "Modules",
+    "orca_module": "",
+    "mpi_module": "",
+    "orca_path": "/apps/codes/orca_5_0_3_linux_x86-64_openmpi411/",
+    "mpi_path": "/apps/libs/openmpi/4.1.1/bin/:$PATH",
+    "scratch_dir": "/SCRATCH/"
+  }
+}

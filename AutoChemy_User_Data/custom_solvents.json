@@ -1,0 +1,7 @@
+{
+  "HFIP": {
+    "crosses": 6,
+    "custom": true,
+    "custom_block": "%cpcm \nepsilon 16.7\nrefrac 1.275\nsmd true \nSMDsolvent \"2-PROPANOL\"  \nsoln 1.275\nsoln25 1.2752\nsola 0.77\nsolb 0.10\nsolg 23.23\nsolc 0.0\nsolh 0.60\nend"
+  }
+}

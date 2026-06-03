@@ -1,0 +1,248 @@
+[
+    {
+        "atom1": "H",
+        "atom2": "H",
+        "bond_type": "Single",
+        "length": 0.74
+    },
+    {
+        "atom1": "H",
+        "atom2": "C",
+        "bond_type": "Single",
+        "length": 1.1
+    },
+    {
+        "atom1": "H",
+        "atom2": "N",
+        "bond_type": "Single",
+        "length": 1.0
+    },
+    {
+        "atom1": "H",
+        "atom2": "O",
+        "bond_type": "Single",
+        "length": 0.97
+    },
+    {
+        "atom1": "H",
+        "atom2": "S",
+        "bond_type": "Single",
+        "length": 1.32
+    },
+    {
+        "atom1": "H",
+        "atom2": "F",
+        "bond_type": "Single",
+        "length": 0.92
+    },
+    {
+        "atom1": "H",
+        "atom2": "Cl",
+        "bond_type": "Single",
+        "length": 1.27
+    },
+    {
+        "atom1": "H",
+        "atom2": "Br",
+        "bond_type": "Single",
+        "length": 1.41
+    },
+    {
+        "atom1": "H",
+        "atom2": "I",
+        "bond_type": "Single",
+        "length": 1.61
+    },
+    {
+        "atom1": "C",
+        "atom2": "C",
+        "bond_type": "Single",
+        "length": 1.54
+    },
+    {
+        "atom1": "C",
+        "atom2": "C",
+        "bond_type": "Double",
+        "length": 1.34
+    },
+    {
+        "atom1": "C",
+        "atom2": "C",
+        "bond_type": "Triple",
+        "length": 1.2
+    },
+    {
+        "atom1": "C",
+        "atom2": "N",
+        "bond_type": "Single",
+        "length": 1.47
+    },
+    {
+        "atom1": "C",
+        "atom2": "N",
+        "bond_type": "Double",
+        "length": 1.28
+    },
+    {
+        "atom1": "C",
+        "atom2": "N",
+        "bond_type": "Triple",
+        "length": 1.16
+    },
+    {
+        "atom1": "C",
+        "atom2": "O",
+        "bond_type": "Single",
+        "length": 1.43
+    },
+    {
+        "atom1": "C",
+        "atom2": "O",
+        "bond_type": "Double",
+        "length": 1.2
+    },
+    {
+        "atom1": "C",
+        "atom2": "F",
+        "bond_type": "Single",
+        "length": 1.41
+    },
+    {
+        "atom1": "C",
+        "atom2": "Cl",
+        "bond_type": "Single",
+        "length": 1.76
+    },
+    {
+        "atom1": "C",
+        "atom2": "Br",
+        "bond_type": "Single",
+        "length": 1.91
+    },
+    {
+        "atom1": "C",
+        "atom2": "S",
+        "bond_type": "Single",
+        "length": 1.81
+    },
+    {
+        "atom1": "N",
+        "atom2": "N",
+        "bond_type": "Single",
+        "length": 1.45
+    },
+    {
+        "atom1": "N",
+        "atom2": "N",
+        "bond_type": "Double",
+        "length": 1.23
+    },
+    {
+        "atom1": "N",
+        "atom2": "N",
+        "bond_type": "Triple",
+        "length": 1.1
+    },
+    {
+        "atom1": "N",
+        "atom2": "O",
+        "bond_type": "Single",
+        "length": 1.36
+    },
+    {
+        "atom1": "N",
+        "atom2": "O",
+        "bond_type": "Double",
+        "length": 1.2
+    },
+    {
+        "atom1": "O",
+        "atom2": "O",
+        "bond_type": "Single",
+        "length": 1.45
+    },
+    {
+        "atom1": "O",
+        "atom2": "O",
+        "bond_type": "Double",
+        "length": 1.21
+    },
+    {
+        "atom1": "F",
+        "atom2": "F",
+        "bond_type": "Single",
+        "length": 1.43
+    },
+    {
+        "atom1": "Cl",
+        "atom2": "Cl",
+        "bond_type": "Single",
+        "length": 1.99
+    },
+    {
+        "atom1": "Br",
+        "atom2": "Br",
+        "bond_type": "Single",
+        "length": 2.28
+    },
+    {
+        "atom1": "I",
+        "atom2": "I",
+        "bond_type": "Single",
+        "length": 2.66
+    },
+    {
+        "atom1": "Pd",
+        "atom2": "Cl",
+        "bond_type": "Single",
+        "length": 2.31
+    },
+    {
+        "atom1": "Pd",
+        "atom2": "N",
+        "bond_type": "Single",
+        "length": 2.07
+    },
+    {
+        "atom1": "Pd",
+        "atom2": "C",
+        "bond_type": "Single",
+        "length": 2.1
+    },
+    {
+        "atom1": "Pd",
+        "atom2": "O",
+        "bond_type": "Single",
+        "length": 2.01
+    },
+    {
+        "atom1": "H",
+        "atom2": "Pd",
+        "bond_type": "Single",
+        "length": 1.68
+    },
+    {
+        "atom1": "H",
+        "atom2": "Mn",
+        "bond_type": "Single",
+        "length": 1.5
+    },
+    {
+        "atom1": "P",
+        "atom2": "P",
+        "bond_type": "Single",
+        "length": 2.21
+    },
+    {
+        "atom1": "B",
+        "atom2": "C",
+        "bond_type": "Single",
+        "length": 1.52
+    },
+    {
+        "atom1": "C",
+        "atom2": "I",
+        "bond_type": "Triple",
+        "length": 2.16
+    }
+]

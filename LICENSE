@@ -1,0 +1,89 @@
+MIT License (with Commercial Use Exception)
+
+Copyright (c) 2026 Nitish Kumar Singh and Saurabh Negi
+
+Scope of this license
+
+This license applies only to the AutoChemy software written by the
+copyright holders ("AutoChemy Code"), including for example the Python
+application, modules, scripts, documentation, and assets that are part of
+the AutoChemy project, excluding third-party components.
+
+This license does NOT apply to external modules or third-party software
+bundled with or used by AutoChemy, including but not limited to:
+
+- Contents of the external_modules/ directory (e.g. CREST, xTB/g-xTB, ASE,
+  and other upstream packages)
+- Third-party executables, libraries, parameter files, or data shipped
+  alongside AutoChemy (e.g. crest.exe, xtb.exe, and related binaries)
+- Any other software whose license appears in its own directory or from
+  its original authors
+
+Those components remain under their respective licenses (for example
+LGPL-3.0 for CREST and GPL-3.0 for xTB/g-xTB as provided in their folders).
+You must comply with each third-party license when using, copying, or
+distributing those components. AutoChemy Code and external modules are
+distributed together for convenience only; combining them does not place
+external modules under this license.
+
+In the terms below, "Software" means AutoChemy Code only.
+
+Permission
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of the Software and associated documentation files, to deal in the Software
+without restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies of the
+Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+1. Attribution
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+2. Permitted uses (no separate commercial permission required)
+
+You may use, modify, and share the Software without a separate commercial
+license for:
+
+- Personal projects
+- Academic and non-commercial research
+- Teaching, training, workshops, and educational demonstrations
+- Open-source distribution (with attribution under this license)
+
+3. Commercial use
+
+"Commercial Use" means any use of the Software, or any product or service that
+incorporates or is derived from the Software, that is primarily intended for
+commercial advantage or monetary compensation, including but not limited to:
+
+- Selling or licensing the Software or a derivative
+- Offering the Software as part of a paid product or paid service (including
+  software-as-a-service)
+- Use inside a for-profit organization beyond reasonable internal evaluation
+
+Commercial Use is not permitted without prior written permission from the
+copyright holders. This restriction applies to AutoChemy Code only, not to
+external modules (which are governed by their own licenses).
+
+4. How to request commercial permission
+
+Contact the copyright holders at autochemy.xyz@gmail.com:
+
+- Nitish Kumar Singh
+- Saurabh Negi
+
+Include a short description of your intended use, organization, and timeline.
+The copyright holders will respond with terms for a commercial license if
+approved.
+
+5. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

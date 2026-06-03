@@ -1,0 +1,14 @@
+{
+  "New Custom Job fvf": {
+    "text": "! B3LYP def2-SVP",
+    "dynamic_xyz": true,
+    "dynamic_cores": true
+  },
+  "Gaussian OPT": {
+    "text": "%chk=C:\\Users\\akhilesh\\Desktop\\nitish\\opt\\opt_try1\n%mem=20GB\n%nprocshared=10\n# opt freq=noraman b3lyp 6-31g** empiricaldispersion=gd3bj \n\nligand 2",
+    "dynamic_xyz": true,
+    "dynamic_cores": true,
+    "gaussian_format": true,
+    "gaussian_replacements": true
+  }
+}

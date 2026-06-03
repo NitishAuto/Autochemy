@@ -1,0 +1,75 @@
+# This file is part of crest.
+# SPDX-Identifier: LGPL-3.0-or-later
+#
+# crest is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# crest is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with crest.  If not, see <https://www.gnu.org/licenses/>.
+
+option(
+  'la_backend',
+  type: 'combo',
+  value: 'mkl-static',
+  yield: true,
+  choices: ['mkl', 'mkl-rt', 'mkl-static', 'openblas', 'netlib', 'custom','none'],
+  description: 'Linear algebra backend for program.',
+)
+option(
+  'custom_libraries',
+  type: 'array',
+  value: [],
+  description: 'libraries to load for custom linear algebra backend',
+)
+option(
+  'openmp',
+  type: 'boolean',
+  value: true,
+  yield: true,
+  description: 'use OpenMP parallelisation',
+)
+option(
+  'WITH_TBLITE',
+  type: 'boolean',
+  value: true,
+  description: 'build with tblite integration',
+)
+option(
+  'WITH_GFN0',
+  type: 'boolean',
+  value: true,
+  description: 'build with GFN0-xTB integration',
+)
+option(
+  'WITH_GFNFF',
+  type: 'boolean',
+  value: true,
+  description: 'build with GFN-FF integration',
+)
+option(
+  'WITH_TOMLF',
+  type: 'boolean',
+  value: true,
+  description: 'build with toml-f integration',
+)
+option(
+  'WITH_XHCFF',
+  type: 'boolean',
+  value: false,
+  description: 'build with XHCFF integration',
+)
+
+option(
+  'WITH_LWONIOM',
+  type: 'boolean',
+  value: true,
+  description: 'build with lwONIOM integration',
+)
+

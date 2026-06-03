@@ -1,0 +1,10 @@
+prefix=D:/a/xtb-for-release/xtb-for-release/xtb-bleed-windows
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: cpx
+Description: cpx: cpx
+Version: 1.1.0
+Requires: lapack, blas
+Libs: -L${libdir} -lcpx -fopenmp -pthread -fopenmp -fopenmp -fopenmp
+Cflags: -I${includedir} -I${includedir}/cpx/gcc-15.2.0 -fopenmp -pthread

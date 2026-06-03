@@ -1,0 +1,10 @@
+{
+  "MN15": {
+    "family": "Hybrid & Meta GGA",
+    "developer": "Minnesota (Truhlar)",
+    "hf": "44%",
+    "desc": "Kohn-Sham hybrid meta-GGA. Broader accuracy across main-group chemistry and transition metals.",
+    "custom": true,
+    "libxc_block": "%method\nmethod dft\nexchange hyb_mgga_x_mn15\ncorrelation mgga_c_mn15\nend"
+  }
+}
