@@ -376,6 +376,7 @@ def build_xtb_argv(
     uhf: int,
     use_xcontrol: bool,
     xtb_method: str = "gfn2",
+    xtb_task_cfg: dict = None,
 ) -> list[str]:
     xtb_args: list[str] = []
     if job == "hess":
@@ -391,6 +392,13 @@ def build_xtb_argv(
         xtb_args.extend(["--gfn", gfn])
     if use_xcontrol:
         xtb_args.extend(["--input", "xcontrol.inp"])
+    
+    if xtb_task_cfg and xtb_task_cfg.get("include_solvation") == "Yes":
+        solv_model = xtb_task_cfg.get("solvation_model", "gbe")
+        solvent = xtb_task_cfg.get("solvent", "")
+        if solvent:
+            xtb_args.extend([f"--{solv_model}", solvent])
+            
     return xtb_args
 
 
@@ -480,7 +488,7 @@ def xtb_thread_worker(
         with open(xcontrol_path, "w", encoding="utf-8", newline="\n") as f:
             f.write(xcontrol_content)
 
-    xtb_args = build_xtb_argv(job, opt_level, gfn, chrg, uhf, use_xcontrol, xtb_method)
+    xtb_args = build_xtb_argv(job, opt_level, gfn, chrg, uhf, use_xcontrol, xtb_method, xtb_task_cfg)
     res_out_path = os.path.join(temp_dir, "res.out")
     cmd = [xtb_exe, "input.xyz"] + xtb_args
     cmd_display = " ".join(f'"{c}"' if " " in c else c for c in cmd)

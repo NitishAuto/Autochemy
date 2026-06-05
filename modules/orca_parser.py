@@ -299,29 +299,49 @@ class ORCAParser:
     def get_frequencies(self) -> List[Frequency]:
         """Extract vibrational frequencies."""
         frequencies = []
-        in_freq_section = False
         
+        # 1. Parse VIBRATIONAL FREQUENCIES block
+        in_freq_section = False
         for i, line in enumerate(self.lines):
             if re.search(r"VIBRATIONAL FREQUENCIES", line, re.IGNORECASE):
                 in_freq_section = True
                 continue
             
             if in_freq_section:
-                # Pattern: "0:   1234.56 cm**-1   12.34 IR"
-                freq_match = re.match(
-                    r'^\s*\d+:\s+(-?\d+\.\d+)\s+cm\*\*-1\s+(\d+\.\d+)\s+(\w+)',
-                    line, re.IGNORECASE
-                )
+                freq_match = re.match(r'^\s*(\d+):\s+(-?\d+\.\d+)\s+cm\*\*-1', line, re.IGNORECASE)
                 if freq_match:
-                    freq = float(freq_match.group(1))
-                    intensity = float(freq_match.group(2))
-                    symmetry = freq_match.group(3)
-                    frequencies.append(Frequency(freq, intensity, symmetry))
+                    mode_idx = int(freq_match.group(1))
+                    freq = float(freq_match.group(2))
+                    while len(frequencies) <= mode_idx:
+                        frequencies.append(Frequency(0.0, 0.0, ""))
+                    frequencies[mode_idx] = Frequency(freq, 0.0, "")
+                elif line.strip() == "" and len(frequencies) > 0:
+                    in_freq_section = False
                 elif line.strip() and re.search(r'^\s*[-=]', line):
-                    if len(frequencies) > 0:
-                        break
+                    pass
+
+        # 2. Parse IR SPECTRUM block for intensities
+        in_ir_section = False
+        for i, line in enumerate(self.lines):
+            if re.search(r"IR SPECTRUM", line, re.IGNORECASE):
+                in_ir_section = True
+                continue
+            
+            if in_ir_section:
+                ir_match = re.match(r'^\s*(\d+):\s+(-?\d+\.\d+)\s+(\d+\.\d+)', line)
+                if ir_match:
+                    mode_idx = int(ir_match.group(1))
+                    intensity = float(ir_match.group(3))
+                    if mode_idx < len(frequencies):
+                        frequencies[mode_idx].intensity = intensity
+                elif line.strip() == "" and len(frequencies) > 0:
+                    in_ir_section = False
+                elif line.strip() and re.search(r'^\s*[-=]', line):
+                    pass
         
-        return frequencies
+        # Filter out translation/rotation modes (typically 0.00 cm**-1 and 0 intensity)
+        filtered_freqs = [f for f in frequencies if not (abs(f.frequency) < 0.001 and f.intensity < 0.001)]
+        return filtered_freqs
     
     def get_normal_termination(self) -> bool:
         """Check if ORCA terminated normally."""

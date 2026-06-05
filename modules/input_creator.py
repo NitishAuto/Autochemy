@@ -2103,6 +2103,7 @@ class InputCreatorModule5:
         self.xtb_method = tk.StringVar(value="gxtb")
         self.xtb_version_choice = tk.StringVar(value=xtb_support.default_xtb_version_label())
         self.xtb_energy_unit = tk.StringVar(value="kcal/mol")
+        self.xtb_solvation_model = tk.StringVar(value="gbe")
         self.xtb_exe_path = tk.StringVar(
             value=xtb_support.bundled_xtb_versions().get(xtb_support.default_xtb_version_label(), "")
         )
@@ -3537,6 +3538,16 @@ class InputCreatorModule5:
         )
         self.xtb_method_combo.pack(side=tk.LEFT, padx=(0, 12))
 
+        self.xtb_include_solvation = tk.StringVar(value="No")
+        self.xtb_solvation_label = ttk.Label(run_btn_frame, text="Include Solvation:")
+        self.xtb_solvation_combo = ttk.Combobox(
+            run_btn_frame,
+            textvariable=self.xtb_include_solvation,
+            values=("No", "Yes"),
+            state="readonly",
+            width=5,
+        )
+
         self.xtb_job_label = ttk.Label(run_btn_frame, text="", font=("Segoe UI", 9, "italic"))
         self.xtb_job_label.pack(side=tk.LEFT, padx=(0, 12))
 
@@ -3887,6 +3898,7 @@ class InputCreatorModule5:
         self.embed_cb = ttk.Combobox(embed_ctrl_frame, textvariable=self.embed_viewer_choice, width=30, state="readonly")
         self.embed_cb.config(postcommand=self._refresh_viewer_options)
         self.embed_cb.pack(side=tk.LEFT, padx=5)
+        ttk.Button(embed_ctrl_frame, text="Open", command=lambda: self._embed_viewer(blank=True)).pack(side=tk.LEFT, padx=2)
         self.embed_cb.bind("<<ComboboxSelected>>", self._on_viewer_changed)
         self._refresh_viewer_options()
 
@@ -4060,13 +4072,21 @@ class InputCreatorModule5:
         )
         opt_cb.set(self.xtb_opt_level.get())
         opt_cb.grid(row=2, column=1, sticky="w", pady=4)
+
         ttk.Label(body, text="Energy Unit:").grid(row=3, column=0, sticky="w", pady=4)
         en_cb = ttk.Combobox(body, values=["kcal/mol", "kJ/mol", "Eh"], state="readonly", width=12)
         en_cb.set(self.xtb_energy_unit.get())
         en_cb.grid(row=3, column=1, sticky="w", pady=4)
-        ttk.Label(body, text="xTB executable:").grid(row=4, column=0, sticky="w", pady=4)
+
+        ttk.Label(body, text="Solvation Model:").grid(row=4, column=0, sticky="w", pady=4)
+        solv_cb = ttk.Combobox(body, values=["gbe", "cosmo", "alpb"], state="readonly", width=12)
+        if not hasattr(self, "xtb_solvation_model"): self.xtb_solvation_model = tk.StringVar(value="gbe")
+        solv_cb.set(self.xtb_solvation_model.get())
+        solv_cb.grid(row=4, column=1, sticky="w", pady=4)
+
+        ttk.Label(body, text="xTB executable:").grid(row=5, column=0, sticky="w", pady=4)
         exe_entry = ttk.Entry(body, textvariable=self.xtb_exe_path, width=58)
-        exe_entry.grid(row=4, column=1, columnspan=2, sticky="ew", pady=4, padx=(0, 4))
+        exe_entry.grid(row=5, column=1, columnspan=2, sticky="ew", pady=4, padx=(0, 4))
 
         def _browse_xtb_exe():
             p = filedialog.askopenfilename(
@@ -4077,24 +4097,42 @@ class InputCreatorModule5:
             if p:
                 self.xtb_exe_path.set(p)
 
-        ttk.Button(body, text="Browse…", command=_browse_xtb_exe).grid(row=4, column=3, sticky="w", pady=4)
-        ttk.Button(body, text="Auto-detect", command=lambda: self.xtb_exe_path.set("")).grid(row=5, column=1, sticky="w", pady=(2, 0))
+        ttk.Button(body, text="Browse.", command=_browse_xtb_exe).grid(row=5, column=3, sticky="w", pady=4)
+        ttk.Button(body, text="Auto-detect", command=lambda: self.xtb_exe_path.set("")).grid(row=6, column=1, sticky="w", pady=(2, 0))
 
         def _apply():
             self.xtb_version_choice.set(version_cb.get())
             self.xtb_gfn_level.set(gfn_cb.get())
             self.xtb_opt_level.set(opt_cb.get())
             self.xtb_energy_unit.set(en_cb.get())
+            self.xtb_solvation_model.set(solv_cb.get())
             self._refresh_xtb_settings_summary()
             win.destroy()
 
-        ttk.Button(body, text="Apply", command=_apply).grid(row=6, column=0, pady=(12, 0), sticky="w")
-        ttk.Button(body, text="Close", command=win.destroy).grid(row=6, column=3, pady=(12, 0), sticky="e")
+        ttk.Button(body, text="Apply", command=_apply).grid(row=7, column=0, pady=(12, 0), sticky="w")
+        ttk.Button(body, text="Close", command=win.destroy).grid(row=7, column=3, pady=(12, 0), sticky="e")
+
+    def _sync_xtb_solvation_ui(self, *args):
+        if not hasattr(self, "xtb_solvation_label"): return
+        add_solvent = self.use_solvent.get()
+        if self.task.get() == "Single Point" and self.subtask.get() == "With solvent":
+            add_solvent = True
+            
+        solvent_name = getattr(self, "solvent", tk.StringVar()).get().strip()
+        if add_solvent and solvent_name:
+            self.xtb_solvation_label.pack(side=tk.LEFT, padx=(8, 4))
+            self.xtb_solvation_combo.pack(side=tk.LEFT, padx=(0, 12))
+        else:
+            self.xtb_solvation_label.pack_forget()
+            self.xtb_solvation_combo.pack_forget()
+            self.xtb_include_solvation.set("No")
 
     def _on_main_tab_changed(self, _event=None):
         self._sync_actions_bar()
         self._apply_beginner_xtb_focus_layout()
         self._refresh_embedded_viewers_after_tab_change()
+        if hasattr(self, "_sync_xtb_solvation_ui"):
+            self._sync_xtb_solvation_ui()
 
     def _is_xtb_tab_selected(self):
         nb = getattr(self, "_main_notebook", None)
@@ -6730,10 +6768,11 @@ class InputCreatorModule5:
     @staticmethod
     def _popen_viewer_exe(exe, target):
         cwd = os.path.dirname(exe) if exe and os.path.isfile(exe) else None
+        cmd = [exe, target] if target else [exe]
         try:
-            return subprocess.Popen([exe, target], cwd=cwd or None)
+            return subprocess.Popen(cmd, cwd=cwd or None)
         except TypeError:
-            return subprocess.Popen([exe, target])
+            return subprocess.Popen(cmd)
 
     @staticmethod
     def _find_jmol_jar_in_folder(folder):
@@ -6755,14 +6794,17 @@ class InputCreatorModule5:
 
     @staticmethod
     def _find_jmol_command(target):
+        def _cmd(*args):
+            return list(args) + [target] if target else list(args)
+
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         bundled_jar = os.path.join(base_dir, "jmol-16.3.55", "Jmol.jar")
         if os.path.isfile(bundled_jar):
-            return ["java", "-jar", bundled_jar, target]
+            return _cmd("java", "-jar", bundled_jar)
 
         env_jar = os.environ.get("JMOL_JAR", "").strip()
         if env_jar and os.path.isfile(env_jar):
-            return ["java", "-jar", env_jar, target]
+            return _cmd("java", "-jar", env_jar)
 
         saved_jmol = None
         for item in SoftwareManager.load_software():
@@ -6773,25 +6815,25 @@ class InputCreatorModule5:
         if saved_jmol:
             if os.path.isfile(saved_jmol):
                 if saved_jmol.lower().endswith(".jar"):
-                    return ["java", "-jar", saved_jmol, target]
-                return [saved_jmol, target]
+                    return _cmd("java", "-jar", saved_jmol)
+                return _cmd(saved_jmol)
             jar = InputCreatorModule5._find_jmol_jar_in_folder(saved_jmol)
             if jar:
-                return ["java", "-jar", jar, target]
+                return _cmd("java", "-jar", jar)
             exe = SoftwareManager.resolve_executable_path(saved_jmol, "Jmol")
             if exe:
-                return [exe, target]
+                return _cmd(exe)
 
         exe = SoftwareManager.get_software_path("Jmol") or SoftwareManager.auto_detect_path("Jmol")
         if exe:
             if exe.lower().endswith(".jar"):
-                return ["java", "-jar", exe, target]
-            return [exe, target]
+                return _cmd("java", "-jar", exe)
+            return _cmd(exe)
 
         for name in ("jmol", "Jmol", "jmol.exe", "Jmol.exe"):
             exe = shutil.which(name)
             if exe:
-                return [exe, target]
+                return _cmd(exe)
         return None
 
     def view_external(self, viewer):
@@ -6850,7 +6892,7 @@ class InputCreatorModule5:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to launch {viewer}:\n{str(e)}")
 
-    def _embed_viewer(self):
+    def _embed_viewer(self, blank=False):
         if os.name != "nt":
             return
 
@@ -6858,10 +6900,9 @@ class InputCreatorModule5:
         viewer_norm = str(viewer or "").strip().lower()
         if viewer in ("Lightweight", "ACV ( AutoChemyViewer )"):
             self.embed_host.config(height=360)
-            rows = _geom_lines_to_coord_rows(self.geom.get("1.0", tk.END))
-            if not rows:
-                messagebox.showwarning("Visualizer", "No valid geometry to display.")
-                return
+            rows = [] if blank else _geom_lines_to_coord_rows(self.geom.get("1.0", tk.END))
+            if not rows and not blank:
+                pass
             self._terminate_embed_subprocess()
             self.struct_outer.config(text="Structure visualization")
             self._show_autochemy_structure(rows)
@@ -6882,13 +6923,11 @@ class InputCreatorModule5:
         except AttributeError:
             pass
 
-        if viewer == "GaussView":
-            struct_path = self._write_temp_gjf()
-        else:
-            struct_path = self._create_temp_xyz()
-
-        if not struct_path:
-            return
+        if not blank:
+            if viewer == "GaussView":
+                struct_path = self._write_temp_gjf()
+            else:
+                struct_path = self._create_temp_xyz()
 
         self._terminate_embed_subprocess()
         self._embed_prelaunch_windows = self._snapshot_top_windows()
@@ -9079,27 +9118,23 @@ class InputCreatorModule5:
 
         xtb_job = self._map_xtb_job()
 
-        if not self._is_global_beginner_mode():
-            confirm = messagebox.askyesno(
-                "Run xTB Preview",
-                f"This will run a GFN{self.xtb_gfn_level.get()}-xTB  {xtb_job.upper()}  calculation.\n\n"
-                "xTB is a semiempirical tight-binding method — results are\n"
-                "approximate and meant only for quick pre-screening.\n\n"
-                "Continue?",
-            )
-            if not confirm:
-                return
 
         opt_level = self.xtb_opt_level.get().strip()
         gfn = self.xtb_gfn_level.get().strip()
         xtb_method = (getattr(self, "xtb_method", None) and self.xtb_method.get() or "gfn2").strip().lower()
 
+        if not hasattr(self, "xtb_solvation_model"):
+            self.xtb_solvation_model = tk.StringVar(value="gbe")
+            
         xtb_task_cfg = {
             "task": self.task.get(),
             "subtask": self.subtask.get(),
             "constraints": [],
             "scan": None,
             "job": xtb_job,
+            "include_solvation": getattr(self, "xtb_include_solvation", tk.StringVar(value="No")).get(),
+            "solvation_model": self.xtb_solvation_model.get(),
+            "solvent": self.solvent.get().split('/')[0].strip().lower(),
         }
         scan_meta = None
 
@@ -9267,6 +9302,8 @@ class InputCreatorModule5:
                         self._save_xtb_job_history()
                     
                     self.btn_full_log_xtb.config(state=tk.NORMAL)
+                    if hasattr(self, "btn_open_xtb_folder"):
+                        self.btn_open_xtb_folder.config(state=tk.NORMAL)
                     if self._last_xtb_run_folder:
                         self.xtb_folder_var.set(
                             f"xTB output folder: {self._last_xtb_run_folder}\n"
@@ -9280,6 +9317,7 @@ class InputCreatorModule5:
                         if hasattr(self, "xtb_right_notebook"):
                             self.xtb_right_notebook.tab(1, state="normal")
                             self.xtb_right_notebook.select(1)
+                        self._show_xtb_scan_graph()
                     else:
                         if hasattr(self, "xtb_right_notebook"):
                             self.xtb_right_notebook.tab(1, state="hidden")
@@ -9318,8 +9356,6 @@ class InputCreatorModule5:
         folder = getattr(self, "_last_xtb_run_folder", None)
         if not folder:
             return
-        if getattr(self, "_last_xtb_is_scan", False):
-            self._show_xtb_scan_graph()
         self._open_beginner_viewer_popup(folder)
 
     def _open_beginner_viewer_popup(self, folder):
@@ -9437,11 +9473,27 @@ class InputCreatorModule5:
         folder = getattr(self, "_last_xtb_run_folder", None)
         if not folder:
             return
-        exe = self._find_chemcraft_exe()
-        if not exe:
-            return
         is_scan = getattr(self, "_last_xtb_is_scan", False)
         job = getattr(self, "_last_xtb_job", "") or ""
+
+        exe = self._find_chemcraft_exe()
+        if not exe:
+            if job in ("hess", "ohess"):
+                self._prompt_viewer_path_setup("Chemcraft", "Chemcraft path not found. Please set the path to automatically view frequency calculations.")
+            return
+
+        opened_files = 0
+        if job in ("hess", "ohess"):
+            g98_path = os.path.join(folder, "g98.out")
+            if os.path.isfile(g98_path):
+                try:
+                    self._popen_viewer_exe(exe, g98_path)
+                    opened_files += 1
+                except Exception:
+                    pass
+            
+            if job == "hess" and opened_files > 0:
+                return
 
         candidates = []
         if is_scan:
