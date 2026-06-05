@@ -9138,7 +9138,7 @@ class InputCreatorModule5:
         }
         scan_meta = None
 
-        if (xtb_task_cfg["task"] == "Optimisation" and xtb_task_cfg["subtask"] == "Constrained") or \
+        if (xtb_task_cfg["task"] in ["Optimisation", "Optimisation + Frequency"] and xtb_task_cfg["subtask"] == "Constrained") or \
            (xtb_task_cfg["task"] == "Scan" and xtb_task_cfg["subtask"] == "Constrained Scan"):
             for cv in getattr(self, "constraint_rows", []):
                 try:
