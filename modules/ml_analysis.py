@@ -155,13 +155,21 @@ class MLAnalysisModule(BaseModule):
     # ============================================================
     def run(self):
         if _ML_IMPORT_ERROR is not None:
-            messagebox.showerror(
-                "Missing dependency",
-                "ML Analysis dependencies are missing.\n"
-                "Install required packages:\n"
-                "pip install scikit-learn xgboost\n\n"
-                f"Details: {_ML_IMPORT_ERROR}"
+            response = messagebox.askyesno(
+                "Missing dependencies",
+                "ML Analysis requires 'scikit-learn' and 'xgboost'.\n"
+                "Would you like to install them now? (requires internet)"
             )
+            if response:
+                self.output.insert(tk.END, "Installing dependencies... Please wait.\n")
+                self.main_frame.update()
+                try:
+                    import subprocess
+                    import sys
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn", "xgboost"])
+                    messagebox.showinfo("Success", "Installation complete!\nPlease restart AutoChemy to use the ML module.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Installation failed:\n{e}")
             return
         threading.Thread(target=self.backend).start()
 

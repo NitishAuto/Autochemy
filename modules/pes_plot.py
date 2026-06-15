@@ -6215,10 +6215,18 @@ class PESPlotModule(BaseModule):
                 add_names = [f"{c:g} {id_to_name[sid]}" if abs(c-1)>1e-12 else id_to_name[sid] for sid, c in e_data.get("add", {}).items() if sid in id_to_name]
                 rem_names = [f"{c:g} {id_to_name[sid]}" if abs(c-1)>1e-12 else id_to_name[sid] for sid, c in e_data.get("remove", {}).items() if sid in id_to_name]
                 mx, my = (x_pts_line[0] + x_pts_line[-1])*0.5, (y_pts[0] + y_pts[-1])*0.5
-                if add_names:
-                    txt = self._format_edge_species_block(add_names)
+                
+                add_str = e_data.get("added_text")
+                if add_str is None and add_names:
+                    add_str = "\n+\n".join(add_names)
+                    
+                rem_str = e_data.get("removed_text")
+                if rem_str is None and rem_names:
+                    rem_str = "\n+\n".join(rem_names)
+
+                if add_str:
                     ann1 = ax.annotate(
-                        txt,
+                        add_str,
                         xy=(mx, my + label_off * 0.25),
                         xytext=(mx - 0.25, my + label_off * 2.2),
                         ha="center",
@@ -6230,12 +6238,13 @@ class PESPlotModule(BaseModule):
                         **_ccc_font_kw,
                     )
                     plot_annotations.append(ann1)
+                    ann1.set_picker(5)
+                    ann1._pes_edge_add_key = edge_key
                     try: ann1.draggable(True)
                     except: pass
-                if rem_names:
-                    txt = self._format_edge_species_block(rem_names)
+                if rem_str:
                     ann2 = ax.annotate(
-                        txt,
+                        rem_str,
                         xy=(mx, my - label_off * 0.25),
                         xytext=(mx + 0.25, my - label_off * 2.3),
                         ha="center",
@@ -6247,6 +6256,8 @@ class PESPlotModule(BaseModule):
                         **_ccc_font_kw,
                     )
                     plot_annotations.append(ann2)
+                    ann2.set_picker(5)
+                    ann2._pes_edge_rem_key = edge_key
                     try: ann2.draggable(True)
                     except: pass
 
@@ -6326,6 +6337,9 @@ class PESPlotModule(BaseModule):
                 
                 if shape == "classic 1" or shape == "classic 3": val_txt = f"{yi:.0f}"
                 elif shape == "classic 2": val_txt = f"({yi:.0f})"
+                
+                # Make minus sign bigger and add space
+                val_txt = val_txt.replace("-", "− ")
                 
                 txt_color = _label_color(color)
                 if not self._label_hide_energies.get():
@@ -6626,7 +6640,7 @@ class PESPlotModule(BaseModule):
                         xy=(axis_data_x, min(0.92, y1 + 0.035)),
                         xytext=(axis_data_x, y1 - 0.028),
                         xycoords=trans_blend,
-                        arrowprops=dict(arrowstyle="-|>", lw=2.0, color="#ef4444"),
+                        arrowprops=dict(arrowstyle="-|>", lw=2.8, color="#ef4444"),
                         clip_on=False,
                         zorder=6.05,
                     )
@@ -7008,6 +7022,26 @@ class PESPlotModule(BaseModule):
                 except Exception:
                     xr, yr = self._plot_window.winfo_pointerxy()
                 self._show_species_context_menu(sp_idx, xr, yr)
+                return
+
+            edge_add = getattr(event.artist, "_pes_edge_add_key", None)
+            if edge_add and getattr(event.mouseevent, "button", 0) == 3:
+                e_data = self.edge_links.get(edge_add, {})
+                old_val = e_data.get("added_text", getattr(event.artist, "get_text")())
+                new_val = _ask_rich_text("Edit Incoming Label", "Enter incoming species label text:", initialvalue=old_val, parent=self._plot_window)
+                if new_val is not None:
+                    e_data["added_text"] = new_val.strip()
+                    self._render_plot()
+                return
+
+            edge_rem = getattr(event.artist, "_pes_edge_rem_key", None)
+            if edge_rem and getattr(event.mouseevent, "button", 0) == 3:
+                e_data = self.edge_links.get(edge_rem, {})
+                old_val = e_data.get("removed_text", getattr(event.artist, "get_text")())
+                new_val = _ask_rich_text("Edit Outgoing Label", "Enter outgoing species label text:", initialvalue=old_val, parent=self._plot_window)
+                if new_val is not None:
+                    e_data["removed_text"] = new_val.strip()
+                    self._render_plot()
                 return
 
             # Clicked Y-Axis object

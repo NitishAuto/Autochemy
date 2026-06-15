@@ -2294,7 +2294,7 @@ class InputCreatorModule5:
         section(tab_general, "Job Type", "Opt+Freq is standard to ensure structure is a true minimum.\nScan/TS are for reaction pathways.")
         task_f = ttk.Frame(tab_general)
         task_f.pack(fill=tk.X)
-        self.task_cb = ttk.Combobox(task_f, textvariable=self.task)
+        self.task_cb = ttk.Combobox(task_f, textvariable=self.task, height=15)
         self.task_cb.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self._update_task_cb_values()
         
@@ -7387,18 +7387,20 @@ class InputCreatorModule5:
             return None
         top = tk.Toplevel(self.parent.winfo_toplevel())
         top.title(f"{title} — lightweight picker")
-        win_w, win_h = 1360, 780
-        top.geometry(f"{win_w}x{win_h}")
-        top.minsize(1100, 680)
         try:
             top.update_idletasks()
             sw = top.winfo_screenwidth()
             sh = top.winfo_screenheight()
-            sx = max(0, (sw - win_w) // 2)
-            sy = max(0, (sh - win_h) // 2 - 20)
-            top.geometry(f"{win_w}x{win_h}+{sx}+{sy}")
         except Exception:
-            pass
+            sw, sh = 1360, 780
+
+        win_w = min(1360, sw - 40)
+        win_h = min(780, sh - 80)
+        sx = max(0, (sw - win_w) // 2)
+        sy = max(0, (sh - win_h) // 2 - 20)
+
+        top.geometry(f"{win_w}x{win_h}+{sx}+{sy}")
+        top.minsize(min(900, win_w), min(550, win_h))
         body = ttk.Frame(top, padding=10)
         body.pack(fill=tk.BOTH, expand=True)
         ttk.Label(
@@ -7951,7 +7953,7 @@ class InputCreatorModule5:
 
     def _update_task_cb_values(self):
         base_values = [
-            "Scan", "Optimisation", "Frequency", "Optimisation + Frequency", 
+            "Optimisation + Frequency", "Optimisation", "Frequency", "Scan",
             "Transition State (TS)", "IRC", "Single Point", "Thermal Correction", "CASSCF", "Custom", "Other"
         ]
         
