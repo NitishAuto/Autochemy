@@ -22,6 +22,14 @@ Current Release
 Version: Beta v1.1
 Platform: Windows
 
+Installation & Setup
+
+To start using AutoChemy:
+1. Ensure you have Python 3.10+ installed on your system.
+2. Double-click `Start AutoChemy.bat` to install dependencies and launch the application.
+
+> **Note for Windows Users**: Because you downloaded this project from the internet, Windows may display a "Publisher could not be verified" security warning when you first run the `.bat` file. This is completely normal. Simply uncheck the **"Always ask before opening this file"** box and click **Run** to proceed.
+
 License
 
 This project is distributed under the terms of the included license file.

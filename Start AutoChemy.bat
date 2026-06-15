@@ -17,11 +17,22 @@ if exist "%ROOT%AutoChemy_User_Data\.launcher_setup_ok" if not exist "%CFG%" (
     )
 )
 
-REM --- Already set up: launch AutoChemy immediately (no checks) ---
+REM --- Already set up: try to launch AutoChemy ---
 if exist "%CFG%" (
+    set "PYCMD="
     set /p PYCMD=<"%CFG%"
-    start "" %PYCMD% "%ROOT%autochemy.py"
-    exit /b 0
+    
+    REM Verify the saved python command still works on this PC
+    if defined PYCMD (
+        %PYCMD% -c "pass" >nul 2>nul
+        if not errorlevel 1 (
+            start "" %PYCMD% "%ROOT%autochemy.py"
+            exit /b 0
+        )
+    )
+    
+    REM If we reach here, the saved command is invalid or missing (e.g. copied to a new PC)
+    del "%CFG%" >nul 2>nul
 )
 
 REM --- First time only: Python + Python libraries (not xTB/CREST) ---
@@ -43,12 +54,18 @@ for %%P in ("py -3.12" "py -3.11" "py -3.10" "py -3" "python" "python3") do (
 exit /b 1
 
 :first_setup
+echo        _         _         ____  _                            
+echo       / \  _   _^| ^|_ ___  / ___^|^| ^|__   ___ _ __ ___  _   _ 
+echo      / _ \^| ^| ^| ^| __/ _ \^| ^|    ^| '_ \ / _ \ '_ ` _ \^| ^| ^| ^|
+echo     / ___ \ ^|_^| ^| ^|^| (_) ^| ^|___ ^| ^| ^| ^|  __/ ^| ^| ^| ^| ^| ^|_^| ^|
+echo    /_/   \_\__,_^|\__\___/ \____^|^|_^| ^|_^|\___^|_^| ^|_^| ^|_^|\__, ^|
+echo                                                       ^|___/ 
 echo.
 echo  AutoChemy - first-time setup
 echo  Checking Python libraries...
 echo.
 
-%PYCMD% -c "import pandas, numpy, matplotlib, PIL, sklearn, xgboost" >nul 2>nul
+%PYCMD% -c "import pandas, numpy, matplotlib, PIL" >nul 2>nul
 if errorlevel 1 (
     echo  Some libraries are missing.
     call :ask_install
@@ -57,15 +74,14 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
-    echo  Installing libraries...
-    %PYCMD% -m pip install --upgrade pip >nul 2>nul
-    %PYCMD% -m pip install -r "%REQ%"
+    echo  Launching Setup UI...
+    "%PYCMD%" "%ROOT%install_deps.py" "%REQ%"
     if errorlevel 1 (
         echo  Install failed. Check internet and try again.
         pause
         exit /b 1
     )
-    %PYCMD% -c "import pandas, numpy, matplotlib, PIL, sklearn, xgboost" >nul 2>nul
+    %PYCMD% -c "import pandas, numpy, matplotlib, PIL" >nul 2>nul
     if errorlevel 1 (
         echo  Libraries still missing after install.
         pause
