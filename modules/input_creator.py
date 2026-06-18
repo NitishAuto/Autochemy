@@ -2009,7 +2009,7 @@ class InputCreatorModule5:
         switches_f.pack(side=tk.RIGHT)
 
         import webbrowser
-        ttk.Button(switches_f, text="📺 Watch Tutorial", command=lambda: webbrowser.open("https://youtube.com/")).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(switches_f, text="📺 Watch Tutorial", command=lambda: webbrowser.open("https://youtu.be/DGfbHzG0zwc?si=qmIuWWVuD4vQM2-P")).pack(side=tk.RIGHT, padx=5)
 
         container = ttk.PanedWindow(main, orient=tk.HORIZONTAL)
         container.pack(fill=tk.BOTH, expand=True)
