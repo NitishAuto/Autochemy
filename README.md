@@ -2,6 +2,9 @@ AutoChemy
 
 AutoChemy is a free and user-friendly computational chemistry platform designed to simplify quantum chemistry workflows for students, researchers, and educators. The software provides an integrated graphical environment for preparing, running, and analyzing calculations without requiring extensive command-line experience.
 
+
+Installation Guide video : https://www.youtube.com/watch?v=PWoCmkNO5gs
+
 Key Features
 ORCA input file generation and job setup
 xTB-based geometry optimization and semiempirical calculations
