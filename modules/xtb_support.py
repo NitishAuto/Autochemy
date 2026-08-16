@@ -93,7 +93,7 @@ def get_wsl_cmd() -> list[str]:
     distro = (os.environ.get("WSL_DISTRO") or "").strip()
     if distro:
         return [wsl_cmd, "-d", distro]
-    return [wsl_cmd, "-d", "Ubuntu-24.04"]
+    return [wsl_cmd]
 
 
 def windows_to_wsl_path(path: str) -> str:
