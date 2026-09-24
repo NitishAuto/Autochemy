@@ -16,6 +16,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from modules import app_theme
+from modules.base_module import BaseModule
 from modules.software_manager import SoftwarePathDialog
 
 
@@ -67,12 +68,64 @@ class ModernSwitch(tk.Canvas):
             self._draw()
 
 
+class PeriodicPlaceholderModule(BaseModule):
+    """Temporary placeholder for the future Periodic workspace."""
+
+    def get_name(self) -> str:
+        return "Periodic"
+
+    def get_icon(self) -> str:
+        return "◌"
+
+    def create_ui(self):
+        self.main_frame = ttk.Frame(self.parent_frame)
+        card = ttk.Frame(self.main_frame)
+        card.pack(expand=True)
+        ttk.Label(card, text="Periodic", font=("Segoe UI", 22, "bold")).pack(pady=(24, 8))
+        ttk.Label(
+            card,
+            text="Periodic tools will be added here later.",
+            font=("Segoe UI", 12),
+        ).pack(pady=(0, 24))
+
+
+class JobManagerPlaceholderModule(BaseModule):
+    """Temporary placeholder for the future Job Manager workspace."""
+
+    def get_name(self) -> str:
+        return "Job Manager"
+
+    def get_icon(self) -> str:
+        return "⌂"
+
+    def create_ui(self):
+        self.main_frame = ttk.Frame(self.parent_frame)
+        card = ttk.Frame(self.main_frame)
+        card.pack(expand=True)
+        ttk.Label(card, text="Job Manager", font=("Segoe UI", 22, "bold")).pack(pady=(24, 8))
+        ttk.Label(
+            card,
+            text="Job management tools will be added here later.",
+            font=("Segoe UI", 12),
+        ).pack(pady=(0, 24))
+
+
+
 class ORCASoftwareSuite:
     """Main application shell for AutoChemy."""
 
     SESSION_VERSION = 1
     SESSION_AUTOSAVE_MS = 15000
     SESSION_FILENAME = os.path.join("AutoChemy_User_Data", ".orca_last_session.json")
+    MOLECULAR_MODULE_NAMES = (
+        "Input Creator",
+        "Output Viewer",
+        "PES Plot",
+        "DIA",
+        "Orbital Creator",
+        "ML",
+        "xtb & Conformational Analysis",
+    )
 
     def __init__(self, root):
         """Initialize the main application."""
@@ -94,6 +147,8 @@ class ORCASoftwareSuite:
         self._save_session_enabled = True
         self._current_module_name = None
         self._pending_module_sessions = {}
+        self._sidebar_mode = "top"
+        self._last_molecular_module_name = None
         self._session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.SESSION_FILENAME)
 
         self._configure_style()
@@ -184,8 +239,34 @@ class ORCASoftwareSuite:
         self.sidebar_header.pack(fill=tk.X, pady=(0, 10), padx=4)
         self.sidebar_header.bind("<Configure>", lambda e: self._draw_sidebar_header())
 
-        self.module_buttons_frame = ttk.Frame(self.sidebar)
-        self.module_buttons_frame.pack(fill=tk.BOTH, expand=True, padx=4)
+        self._sidebar_top_frame = ttk.Frame(self.sidebar)
+        self._sidebar_top_frame.pack(fill=tk.X, padx=4)
+
+        self._sidebar_group_frame = ttk.Frame(self.sidebar)
+        self._sidebar_group_header = ttk.Frame(self._sidebar_group_frame)
+        self._sidebar_group_header.pack(fill=tk.X, pady=(8, 4))
+        self._sidebar_back_button = ttk.Button(
+            self._sidebar_group_header,
+            text="← Back",
+            command=self._show_top_sidebar,
+            style="Sidebar.TButton",
+            width=10,
+        )
+        self._sidebar_back_button.pack(side=tk.LEFT)
+        self._sidebar_group_title = ttk.Label(self._sidebar_group_header, text="", font=("Segoe UI", 11, "bold"))
+        self._sidebar_group_title.pack(side=tk.LEFT, padx=(8, 0))
+
+        self._sidebar_group_body = ttk.Frame(self._sidebar_group_frame)
+        self._sidebar_group_body.pack(fill=tk.BOTH, expand=True)
+        self._molecular_buttons_frame = ttk.Frame(self._sidebar_group_body)
+        self._molecular_buttons_frame.pack(fill=tk.BOTH, expand=True)
+        self._periodic_placeholder_frame = ttk.Frame(self._sidebar_group_body)
+        ttk.Label(
+            self._periodic_placeholder_frame,
+            text="Periodic tools will be added here later.",
+            wraplength=180,
+            justify=tk.CENTER,
+        ).pack(expand=True, fill=tk.BOTH, padx=12, pady=12)
 
         self.module_container = ttk.Frame(main_container)
         self.module_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
@@ -240,6 +321,109 @@ class ORCASoftwareSuite:
                     )
                 except tk.TclError:
                     pass
+
+    def _clear_frame_children(self, frame):
+        for child in frame.winfo_children():
+            child.destroy()
+
+    def _set_sidebar_mode(self, mode: str):
+        mode = mode if mode in {"top", "molecular", "periodic"} else "top"
+        self._sidebar_mode = mode
+
+        if mode == "top":
+            self._sidebar_group_frame.pack_forget()
+            return
+
+        self._sidebar_group_title.config(text="Molecular" if mode == "molecular" else "Periodic")
+        self._sidebar_group_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=(6, 0))
+
+        if mode == "molecular":
+            self._periodic_placeholder_frame.pack_forget()
+            if not self._molecular_buttons_frame.winfo_ismapped():
+                self._molecular_buttons_frame.pack(fill=tk.BOTH, expand=True)
+        elif mode == "periodic":
+            self._molecular_buttons_frame.pack_forget()
+            if not self._periodic_placeholder_frame.winfo_ismapped():
+                self._periodic_placeholder_frame.pack(fill=tk.BOTH, expand=True)
+
+    def _show_top_sidebar(self):
+        self._set_sidebar_mode("top")
+
+    def _show_molecular_sidebar(self):
+        self._set_sidebar_mode("molecular")
+        if self._last_molecular_module_name in self.modules:
+            if self._current_module_name != self._last_molecular_module_name:
+                self._switch_module(self._last_molecular_module_name)
+            return
+        if self._current_module_name not in self.MOLECULAR_MODULE_NAMES:
+            for module_name in self.MOLECULAR_MODULE_NAMES:
+                if module_name in self.modules:
+                    self._switch_module(module_name)
+                    return
+
+    def _show_periodic_sidebar(self):
+        self._set_sidebar_mode("periodic")
+        if "Periodic" in self.modules and self._current_module_name != "Periodic":
+            self._switch_module("Periodic")
+
+    def _show_job_manager_sidebar(self):
+        self._set_sidebar_mode("top")
+        if "Job Manager" in self.modules and self._current_module_name != "Job Manager":
+            self._switch_module("Job Manager")
+
+    def _build_sidebar_navigation(self):
+        self._clear_frame_children(self._sidebar_top_frame)
+        self._clear_frame_children(self._molecular_buttons_frame)
+
+        molecular_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text="🧬 Molecular",
+            command=self._show_molecular_sidebar,
+            style="Sidebar.TButton",
+        )
+        molecular_btn.pack(fill=tk.X, pady=(0, 3))
+
+        periodic_module = self.modules.get("Periodic")
+        periodic_text = f"{periodic_module.get_icon()} Periodic" if periodic_module else "◌ Periodic"
+        periodic_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text=periodic_text,
+            command=self._show_periodic_sidebar,
+            style="Sidebar.TButton",
+        )
+        periodic_btn.pack(fill=tk.X, pady=3)
+
+        job_manager_module = self.modules.get("Job Manager")
+        job_manager_text = f"{job_manager_module.get_icon()} Job Manager" if job_manager_module else "⌂ Job Manager"
+        job_manager_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text=job_manager_text,
+            command=self._show_job_manager_sidebar,
+            style="Sidebar.TButton",
+        )
+        job_manager_btn.pack(fill=tk.X, pady=3)
+
+        about_module = self.modules.get("About us")
+        about_text = f"{about_module.get_icon()} About us" if about_module else "✨ About us"
+        about_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text=about_text,
+            command=lambda: self._switch_module("About us"),
+            style="Sidebar.TButton",
+        )
+        about_btn.pack(fill=tk.X, pady=(3, 0))
+
+        for module_name in self.MOLECULAR_MODULE_NAMES:
+            module = self.modules.get(module_name)
+            if not module:
+                continue
+            btn = ttk.Button(
+                self._molecular_buttons_frame,
+                text=f"{module.get_icon()} {module_name}",
+                command=lambda name=module_name: self._switch_module(name),
+                style="Sidebar.TButton",
+            )
+            btn.pack(fill=tk.X, pady=3)
 
     def _on_dark_mode_toggle(self):
         if hasattr(self, "_dark_mode_switch"):
@@ -393,21 +577,18 @@ class ORCASoftwareSuite:
             print(msg)
             skipped_modules.append(msg)
 
+        module_classes.append((PeriodicPlaceholderModule, "Periodic"))
+        module_classes.append((JobManagerPlaceholderModule, "Job Manager"))
+
         for module_class, module_name in module_classes:
             try:
                 module = module_class(self.module_container)
                 self.modules[module_name] = module
 
-                btn = ttk.Button(
-                    self.module_buttons_frame,
-                    text=f"{module.get_icon()} {module_name}",
-                    command=lambda name=module_name: self._switch_module(name),
-                    style="Sidebar.TButton",
-                )
-                btn.pack(fill=tk.X, pady=3)
-
             except Exception as e:
                 print(f"Error loading module {module_name}: {e}")
+
+        self._build_sidebar_navigation()
 
         if skipped_modules:
             try:
@@ -434,6 +615,14 @@ class ORCASoftwareSuite:
                 print(f"Error deactivating {self.current_module.get_name()}: {e}")
 
         new_module = self.modules[module_name]
+
+        if module_name == "Periodic":
+            self._set_sidebar_mode("periodic")
+        elif module_name in self.MOLECULAR_MODULE_NAMES:
+            self._last_molecular_module_name = module_name
+            self._set_sidebar_mode("molecular")
+        else:
+            self._set_sidebar_mode("top")
         
         # Show loading cursor to prevent "freeze" feeling
         self.root.config(cursor="watch")
