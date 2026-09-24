@@ -1,0 +1,38 @@
+# Python bytecode and caches
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc.*
+*.pyo
+*.pyd
+
+# Virtual environments and build artifacts
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/
+
+# OS/editor clutter
+.DS_Store
+Thumbs.db
+
+# AutoChemy first-run and user-specific runtime files
+AutoChemy_User_Data/.autochemy_ready
+AutoChemy_User_Data/.launcher_setup_ok
+AutoChemy_User_Data/.orca_last_session.json
+AutoChemy_User_Data/orca_last_session.json
+AutoChemy_User_Data/user_name.txt
+AutoChemy_User_Data/software_paths.json
+AutoChemy_User_Data/custom_jobs.json
+AutoChemy_User_Data/custom_functionals.json
+AutoChemy_User_Data/custom_basis.json
+AutoChemy_User_Data/custom_solvents.json
+AutoChemy_User_Data/input_creator_5_projects.json
+AutoChemy_User_Data/local_job_history.json
+AutoChemy_User_Data/xtb_job_history.json
+AutoChemy_User_Data/standalone_xtb_job_history.json
+AutoChemy_User_Data/saved_machines.json
+AutoChemy_User_Data/pes_plot_projects.json
+AutoChemy_User_Data/pes_plot_defaults.json
