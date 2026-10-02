@@ -12,11 +12,13 @@ venv/
 env/
 build/
 dist/
+profiling
 *.egg-info/
 
 # OS/editor clutter
 .DS_Store
 Thumbs.db
+paths.txt
 
 # AutoChemy first-run and user-specific runtime files
 AutoChemy_User_Data/.autochemy_ready

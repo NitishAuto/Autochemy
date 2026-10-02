@@ -1,6 +1,7 @@
 #this version run the pefect window
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
+import ast
 import json
 import os
 
@@ -2142,6 +2143,10 @@ class InputCreatorModule5:
         self.mpi_path = tk.StringVar(value="/apps/libs/openmpi/4.1.1")
         self.xtb_module = tk.StringVar(value="")
         self.xtb_path = tk.StringVar(value="")
+        self._master_paths_prompted = False
+        self._master_paths_file = ""
+        self._master_paths = {"version": 1, "paths": {"ORCA_ROOT": "", "ESPRESSO_ROOT": ""}, "systems": {}}
+        self._load_master_paths(prompt_if_broken=False)
 
         # -------- LEFT COLUMN: settings + geometry (no viewer here) --------
         # -------- PANED WINDOW --------
@@ -3243,7 +3248,7 @@ class InputCreatorModule5:
         spacer.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.btn_orca_recheck = ttk.Button(status_row, text="Re-check", command=self._update_local_orca_status)
         self.btn_orca_recheck.pack(side=tk.RIGHT)
-        self.btn_orca_quick_search = ttk.Button(status_row, text="Quick search drives", command=self._run_quick_orca_search)
+        self.btn_orca_quick_search = ttk.Button(status_row, text="Edit paths.txt", command=self._open_master_paths_file)
         self.btn_orca_quick_search.pack(side=tk.RIGHT, padx=(0, 6))
         self.btn_orca_path_help = ttk.Button(status_row, text="Path setup help", command=self._show_orca_path_setup_help)
         self.btn_orca_path_help.pack(side=tk.RIGHT, padx=(0, 6))
@@ -5248,112 +5253,239 @@ class InputCreatorModule5:
 
         return hits
 
-    def _detect_local_orca(self, quick_scan=False):
-        candidates = []
-        seen = set()
+    def _workspace_root(self):
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        def _add_candidate(c):
-            c = (c or "").strip()
-            if not c or c in seen:
+    def _master_paths_candidates(self):
+        candidates = [
+            os.path.join(os.getcwd(), "paths.txt"),
+            os.path.join(self._workspace_root(), "paths.txt"),
+        ]
+        unique = []
+        for path in candidates:
+            if path not in unique:
+                unique.append(path)
+        return unique
+
+    def _master_paths_file_path(self):
+        for path in self._master_paths_candidates():
+            if os.path.isfile(path):
+                return path
+        return self._master_paths_candidates()[0]
+
+    def _default_master_paths_data(self):
+        return {
+            "version": 1,
+            "paths": {
+                "ORCA_ROOT": "",
+                "ESPRESSO_ROOT": "",
+            },
+            "systems": {},
+        }
+
+    def _parse_legacy_master_paths_text(self, raw_text):
+        data = self._default_master_paths_data()
+        found = False
+        for line in (raw_text or "").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key in ("ORCA_ROOT", "ESPRESSO_ROOT"):
+                data["paths"][key] = value
+                found = True
+        return data if found else None
+
+    def _normalize_master_paths_data(self, data):
+        if not isinstance(data, dict):
+            return None
+
+        if "paths" not in data and any(k in data for k in ("ORCA_ROOT", "ESPRESSO_ROOT")):
+            data = {
+                "version": data.get("version", 1),
+                "paths": {
+                    "ORCA_ROOT": data.get("ORCA_ROOT", ""),
+                    "ESPRESSO_ROOT": data.get("ESPRESSO_ROOT", ""),
+                },
+                "systems": data.get("systems", {}),
+            }
+
+        paths = data.get("paths")
+        systems = data.get("systems")
+        if not isinstance(paths, dict):
+            return None
+
+        normalized = self._default_master_paths_data()
+        normalized["version"] = int(data.get("version", 1) or 1)
+        normalized["paths"]["ORCA_ROOT"] = str(paths.get("ORCA_ROOT", "") or "").strip()
+        normalized["paths"]["ESPRESSO_ROOT"] = str(paths.get("ESPRESSO_ROOT", "") or "").strip()
+
+        if isinstance(systems, dict):
+            cleaned_systems = {}
+            for system_name, system_data in systems.items():
+                if not isinstance(system_data, dict):
+                    continue
+                cleaned_systems[str(system_name)] = {
+                    "ip_address": str(system_data.get("ip_address", system_data.get("ip", "")) or "").strip(),
+                    "username": str(system_data.get("username", system_data.get("user", "")) or "").strip(),
+                }
+            normalized["systems"] = cleaned_systems
+
+        return normalized
+
+    def _write_master_paths_template(self, path):
+        data = self._default_master_paths_data()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+    def _open_master_paths_file(self):
+        path = self._master_paths_file_path()
+        needs_template = not os.path.isfile(path)
+        if not needs_template:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    needs_template = not f.read().strip()
+            except Exception:
+                needs_template = False
+        if needs_template:
+            try:
+                self._write_master_paths_template(path)
+            except Exception as e:
+                messagebox.showerror("paths.txt", f"Could not create paths.txt:\n{e}")
                 return
-            seen.add(c)
-            candidates.append(c)
-
-        _add_candidate(os.environ.get("ORCA_EXE", ""))
-        _add_candidate(shutil.which("orca.exe") or "")
-        _add_candidate(shutil.which("orca") or "")
-
-        orca_path_val = (self.orca_path.get() or "").strip()
-        if orca_path_val:
-            if os.path.isdir(orca_path_val):
-                exe_name = "orca.exe" if os.name == "nt" else "orca"
-                _add_candidate(os.path.join(orca_path_val, exe_name))
+        try:
+            if os.name == "nt":
+                os.startfile(path)  # type: ignore[attr-defined, unused-ignore]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
             else:
-                _add_candidate(orca_path_val)
+                subprocess.Popen(["xdg-open", path])
+        except Exception as e:
+            messagebox.showerror("paths.txt", f"Could not open paths.txt:\n{e}")
 
-        if quick_scan:
-            for c in self._quick_find_orca_candidates():
-                _add_candidate(c)
+    def _load_master_paths(self, prompt_if_broken=False):
+        path = self._master_paths_file_path()
+        self._master_paths_file = path
+        self._master_paths = self._default_master_paths_data()
+
+        if not os.path.isfile(path):
+            detail = f"paths.txt was not found at:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+        except Exception as e:
+            detail = f"Could not read paths.txt:\n{e}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        if not raw.strip():
+            detail = f"paths.txt is empty:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        parsed = None
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            try:
+                parsed = ast.literal_eval(raw)
+            except Exception:
+                parsed = self._parse_legacy_master_paths_text(raw)
+
+        normalized = self._normalize_master_paths_data(parsed)
+        if not normalized:
+            detail = f"paths.txt is broken or has an unsupported format:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        self._master_paths = normalized
+        orca_root = normalized["paths"].get("ORCA_ROOT", "")
+        if orca_root:
+            self.orca_path.set(orca_root)
+        self._master_paths_prompted = False
+        return True, ""
+
+    def _prompt_fix_master_paths(self, detail):
+        if getattr(self, "_master_paths_prompted", False):
+            return
+        self._master_paths_prompted = True
+        if messagebox.askyesno("Broken paths", f"{detail}\n\nWould you want to fix the paths now?"):
+            self._open_master_paths_file()
+
+    def _detect_local_orca(self, quick_scan=False):
+        del quick_scan
+
+        ok, detail = self._load_master_paths(prompt_if_broken=False)
+        if not ok:
+            return False, "", "", detail, []
+
+        orca_root = (self._master_paths.get("paths", {}) or {}).get("ORCA_ROOT", "")
+        if not orca_root:
+            return False, "", "", "paths.txt does not define ORCA_ROOT.", []
+
+        orca_root = os.path.expanduser(os.path.expandvars(orca_root))
+        if not os.path.isabs(orca_root):
+            orca_root = os.path.abspath(os.path.join(os.path.dirname(self._master_paths_file or self._workspace_root()), orca_root))
+        if os.path.isdir(orca_root):
+            exe_name = "orca.exe" if os.name == "nt" else "orca"
+            exe = os.path.join(orca_root, exe_name)
+        else:
+            exe = orca_root
+
+        if not os.path.exists(exe):
+            return False, "", "", f"ORCA_ROOT points to a missing path:\n{orca_root}", []
 
         version_patterns = [
             r"Program Version\s+([0-9][0-9A-Za-z.\-_]*)",
             r"\bORCA[^0-9]*([0-9][0-9A-Za-z.\-_]*)",
             r"\bVersion[:\s]+([0-9][0-9A-Za-z.\-_]*)",
         ]
+        result = self._try_orca_candidate(exe, version_patterns)
+        if result:
+            found_exe, version, _out = result
+            return True, found_exe, version, "", [(found_exe, version)]
 
-        valid_versions = []
-        for cand in candidates:
-            result = self._try_orca_candidate(cand, version_patterns)
-            if result:
-                found_exe, version, out = result
-                valid_versions.append((found_exe, version))
-
-        if valid_versions:
-            valid_versions.sort(key=lambda x: x[1], reverse=True)
-            seen_exes = set()
-            unique_versions = []
-            for ex, ver in valid_versions:
-                if ex not in seen_exes:
-                    seen_exes.add(ex)
-                    unique_versions.append((ex, ver))
-            return True, unique_versions[0][0], unique_versions[0][1], "", unique_versions
-
-        msg = (
-            "ORCA executable was not detected in PATH / ORCA_EXE / ORCA path field.\n"
-            "Install ORCA, then add it to system PATH or set ORCA_EXE.\n"
-            "Tip: use 'Quick search drives' to locate an existing ORCA installation."
-        )
-        return False, "", "", msg, []
+        return True, exe, "configured", "", [(exe, "configured")]
 
     def _run_quick_orca_search(self):
-        if not getattr(self, "local_orca_status_var", None):
-            return
-        self.local_orca_light_var.set("🟡")
-        self.local_orca_status_var.set("Searching local drives for ORCA executable... please wait.")
-        self.local_orca_path_var.set("Quick scan running (limited depth for speed).")
-        try:
-            self.frame.update_idletasks()
-        except Exception:
-            pass
-        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=True)
-        if ok:
-            self._update_orca_combobox_ui(all_versions)
-            self.local_orca_light_var.set("🟢")
-            self.local_orca_status_var.set(f"ORCA found by quick search. Version: {version}")
-            self.local_orca_path_var.set(f"Executable: {exe}")
-            try:
-                self.orca_path.set(os.path.dirname(exe))
-            except Exception:
-                pass
-            try:
-                self.local_orca_help_frame.pack_forget()
-            except Exception:
-                pass
-        else:
-            self.local_orca_light_var.set("🔴")
-            self.local_orca_status_var.set("Quick search did not find ORCA executable.")
-            self.local_orca_path_var.set(detail)
-            try:
-                self.local_orca_help_frame.pack(fill=tk.X, pady=(6, 0))
-            except Exception:
-                pass
+        self._open_master_paths_file()
 
     def _show_orca_path_setup_help(self):
         win = tk.Toplevel(self.parent)
-        win.title("Set up ORCA in PATH")
+        win.title("Set up paths.txt")
         win.transient(self.parent)
         win.geometry("760x460")
         body = ttk.Frame(win, padding=12)
         body.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(body, text="ORCA installed but not detected?", font=("Segoe UI", 11, "bold")).pack(anchor="w")
+        ttk.Label(body, text="Master path file not configured?", font=("Segoe UI", 11, "bold")).pack(anchor="w")
         msg = (
-            "1) Click 'Quick search drives' to auto-locate orca.exe.\n"
-            "2) If found, copy its folder path and set PATH / ORCA_EXE.\n\n"
-            "Windows (PowerShell, current user):\n"
-            "  setx ORCA_EXE \"C:\\\\path\\\\to\\\\orca.exe\"\n"
-            "  setx PATH \"$($env:PATH);C:\\\\path\\\\to\\\\orca\\\\folder\"\n\n"
-            "Then restart this app/terminal and click Re-check.\n\n"
-            "You can also paste the ORCA folder into 'ORCA Module/Path' field."
+            "Create or edit paths.txt in the installation folder or current working folder.\n\n"
+            "Recommended JSON structure:\n"
+            "{\n"
+            "  \"version\": 1,\n"
+            "  \"paths\": {\n"
+            "    \"ORCA_ROOT\": \"C:/path/to/orca\",\n"
+            "    \"ESPRESSO_ROOT\": \"C:/path/to/espresso\"\n"
+            "  },\n"
+            "  \"systems\": {\n"
+            "    \"cluster1\": {\n"
+            "      \"ip_address\": \"192.168.1.10\",\n"
+            "      \"username\": \"user\"\n"
+            "    }\n"
+            "  }\n"
+            "}\n\n"
+            "If paths are broken, click Edit paths.txt and fix them there."
         )
         txt = tk.Text(body, wrap=tk.WORD, font=("Consolas", 10), height=16)
         txt.pack(fill=tk.BOTH, expand=True, pady=(8, 8))
@@ -5361,7 +5493,7 @@ class InputCreatorModule5:
         txt.config(state=tk.DISABLED)
         btn_row = ttk.Frame(body)
         btn_row.pack(fill=tk.X)
-        ttk.Button(btn_row, text="Open ORCA Official", command=lambda: webbrowser.open("https://www.faccts.de/orca/")).pack(side=tk.LEFT)
+        ttk.Button(btn_row, text="Open paths.txt", command=self._open_master_paths_file).pack(side=tk.LEFT)
         ttk.Button(btn_row, text="Close", command=win.destroy).pack(side=tk.RIGHT)
 
     def _clear_local_job_log(self):
@@ -5571,9 +5703,12 @@ class InputCreatorModule5:
             messagebox.showwarning("Local Submission", "Input is empty. Generate input first.")
             return
 
-        ok, exe, version, _detail, all_versions = self._detect_local_orca(quick_scan=False)
+        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=False)
         if not ok:
-            show_software_not_found_dialog("ORCA", self.parent, callback_on_add_path=self._check_local_orca)
+            self.local_orca_light_var.set("🔴")
+            self.local_orca_status_var.set("paths.txt is broken or ORCA_ROOT is missing.")
+            self.local_orca_path_var.set(detail)
+            self._prompt_fix_master_paths(detail)
             return
         self._update_orca_combobox_ui(all_versions)
 
@@ -5867,34 +6002,8 @@ class InputCreatorModule5:
         except Exception:
             pass
 
-        # 1) Fast PATH/env/manual field check first
+        # 1) Read the master paths file first.
         ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=False)
-        if ok:
-            self._update_orca_combobox_ui(all_versions)
-            _hide_orca_action_buttons()
-            self.local_orca_light_var.set("🟢")
-            self.local_orca_status_var.set(f"ORCA installed and ready. Version: {version}")
-            self.local_orca_path_var.set("You can run local jobs now.")
-            try:
-                self.orca_path.set(os.path.dirname(exe))
-            except Exception:
-                pass
-            try:
-                self.local_orca_help_frame.pack_forget()
-            except Exception:
-                pass
-            return
-
-        # 2) Automatic quick drive search before showing install guidance
-        self.local_orca_light_var.set("🟡")
-        self.local_orca_status_var.set("ORCA not in PATH. Running quick drive search...")
-        self.local_orca_path_var.set("Checking common install locations...")
-        try:
-            self.frame.update_idletasks()
-        except Exception:
-            pass
-
-        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=True)
         if ok:
             self._update_orca_combobox_ui(all_versions)
             _hide_orca_action_buttons()
@@ -5913,8 +6022,9 @@ class InputCreatorModule5:
 
         _show_orca_action_buttons()
         self.local_orca_light_var.set("🔴")
-        self.local_orca_status_var.set("ORCA not detected for local submission.")
+        self.local_orca_status_var.set("paths.txt is broken or ORCA_ROOT is missing.")
         self.local_orca_path_var.set(detail)
+        self._prompt_fix_master_paths(detail)
         try:
             self.local_orca_help_frame.pack(fill=tk.X, pady=(6, 0))
         except Exception:
