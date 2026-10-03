@@ -214,27 +214,28 @@ class ORCASoftwareSuite:
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=6)
         self.sidebar.pack_propagate(False)
 
-        user_name = ""
-        user_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AutoChemy_User_Data", "user_name.txt")
-        if os.path.exists(user_file):
-            try:
-                with open(user_file, "r") as f:
-                    user_name = f.read().strip()
-            except Exception:
-                pass
-        else:
-            from tkinter import simpledialog
-            # Only ask if we are actually rendering the main window to avoid breaking automated tests if any
-            name = simpledialog.askstring("Welcome to AutoChemy", "Please enter your name (optional):", parent=self.root)
-            if name:
-                user_name = name.strip()
-                try:
-                    os.makedirs(os.path.dirname(user_file), exist_ok=True)
-                    with open(user_file, "w") as f:
-                        f.write(user_name)
-                except Exception:
-                    pass
-        self.header_text_base = f"{user_name}'s Auto" if user_name else "Auto"
+        # user_name = ""
+        # user_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AutoChemy_User_Data", "user_name.txt")
+        # if os.path.exists(user_file):
+        #     try:
+        #         with open(user_file, "r") as f:
+        #             user_name = f.read().strip()
+        #     except Exception:
+        #         pass
+        # else:
+        #     from tkinter import simpledialog
+        #     # Only ask if we are actually rendering the main window to avoid breaking automated tests if any
+        #     name = simpledialog.askstring("Welcome to AutoChemy", "Please enter your name (optional):", parent=self.root)
+        #     if name:
+        #         user_name = name.strip()
+        #         try:
+        #             os.makedirs(os.path.dirname(user_file), exist_ok=True)
+        #             with open(user_file, "w") as f:
+        #                 f.write(user_name)
+        #         except Exception:
+        #             pass
+        # self.header_text_base = f"{user_name}'s Auto" if user_name else "Auto"
+        user_name="Auto"
         self.sidebar_header = tk.Canvas(self.sidebar, height=36, highlightthickness=0)
         self.sidebar_header.pack(fill=tk.X, pady=(0, 10), padx=4)
         self.sidebar_header.bind("<Configure>", lambda e: self._draw_sidebar_header())
