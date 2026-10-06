@@ -578,7 +578,15 @@ class ORCASoftwareSuite:
             print(msg)
             skipped_modules.append(msg)
 
-        module_classes.append((PeriodicPlaceholderModule, "Periodic"))
+        try:
+            from modules.structure_generator import StructureGeneratorModule
+            module_classes.append((StructureGeneratorModule, "Periodic"))
+        except Exception as exc:
+            msg = f"Skipping module Structure Generator: {exc}"
+            print(msg)
+            skipped_modules.append(msg)
+            module_classes.append((PeriodicPlaceholderModule, "Periodic"))
+
         module_classes.append((JobManagerPlaceholderModule, "Job Manager"))
 
         for module_class, module_name in module_classes:
