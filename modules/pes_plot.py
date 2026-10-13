@@ -7002,7 +7002,7 @@ class PESPlotModule(BaseModule):
                     try:
                         s = json.loads(self._aks_step_labels.get() or "[]")
                         old_val = s[step_idx].get("label", "")
-                        new_val = _ask_rich_text("Edit Label", "Enter new label text\\n(Supports basic math, e.g. $\Delta G^\ddagger$):", initialvalue=old_val, parent=self._plot_window)
+                        new_val = _ask_rich_text("Edit Label", "Enter new label text\\n(Supports basic math, e.g. $\\Delta G^\\ddagger$):", initialvalue=old_val, parent=self._plot_window)
                         if new_val is not None:
                             s[step_idx]["label"] = new_val.strip()
                             self._aks_step_labels.set(json.dumps(s))
@@ -9711,7 +9711,7 @@ class PESPlotModule(BaseModule):
                 os.startfile(os.path.dirname(path))
 
         def edit_temp():
-            new_name = _ask_rich_text("Edit Name (Plot Only)", "Enter temporary name for plot\\n(Supports basic math, e.g. $\Delta G^\ddagger$):", initialvalue=sp.get("plot_name_override", sp.get("name", "")), parent=self._plot_window)
+            new_name = _ask_rich_text("Edit Name (Plot Only)", "Enter temporary name for plot\\n(Supports basic math, e.g. $\\Delta G^\\ddagger$):", initialvalue=sp.get("plot_name_override", sp.get("name", "")), parent=self._plot_window)
             if new_name is not None:
                 sp["plot_name_override"] = new_name.strip()
                 self._render_plot()
