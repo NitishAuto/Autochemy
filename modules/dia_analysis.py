@@ -14,9 +14,6 @@ class DIAAnalysisModule(BaseModule):
     def get_name(self):
         return "DIA"
 
-    def get_icon(self):
-        return "📈"
-
     # ============================================================
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame, padding=25)
@@ -31,7 +28,7 @@ class DIAAnalysisModule(BaseModule):
         # ================= HEADER =================
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=self.get_name(),  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # ================= WORKFLOW =================
@@ -66,7 +63,7 @@ class DIAAnalysisModule(BaseModule):
         self.create_have_frag_ui()
 
         # ================= ORCA INPUT =================
-        self.input_frame = ttk.LabelFrame(self.main_frame, text="🧾 ORCA Input Template", padding=10)
+        self.input_frame = ttk.LabelFrame(self.main_frame, text="ORCA Input Template", padding=10)
 
         self.input_text = tk.Text(
             self.input_frame,
@@ -91,10 +88,10 @@ end
         btn_frame = ttk.Frame(self.main_frame)
         btn_frame.pack(fill=tk.X, pady=15)
 
-        ttk.Button(btn_frame, text="🚀 Run DIA Analysis",
+        ttk.Button(btn_frame, text="Run DIA Analysis",
                    command=self.run).pack(side=tk.LEFT, padx=5)
 
-        ttk.Button(btn_frame, text="💾 Download CSV",
+        ttk.Button(btn_frame, text="Download CSV",
                    command=self.download_csv).pack(side=tk.LEFT, padx=5)
 
         # ================= STATUS =================
@@ -336,7 +333,7 @@ end
                 distortion_1 = [(x - frag1_opt_energy)*627.509 for x in frag1_sp_data]
                 distortion_2 = [(x - frag2_opt_energy)*627.509 for x in frag2_sp_data]
                 total_distortion = [d1 + d2 for d1, d2 in zip(distortion_1, distortion_2)]
-                interaction = [(comp_sp_data[i] - (frag1_sp_data[i] + frag2_sp_data[i])) * 627.509
+                interaction = [(comp_sp_data- (frag1_sp_data+ frag2_sp_data)) * 627.509
                                 for i in range(len(comp_sp_data))]
 
                 from modules.codes_dia import dis_int_plot 

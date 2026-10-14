@@ -113,9 +113,6 @@ class OrbitalCreatorModule:
     def get_name(self):
         return "Orbital Creator"
 
-    def get_icon(self):
-        return "🧬"
-
     def activate(self):
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -130,7 +127,7 @@ class OrbitalCreatorModule:
 
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=self.get_name(),  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # -------- ORCA output file --------

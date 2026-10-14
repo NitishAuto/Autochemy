@@ -82,8 +82,8 @@ class AutoChemyViewer:
         self.bonds = []
         self.bond_order = {}
         for i in range(len(self.coords)):
-            xi, yi, zi = self.coords[i]
-            ei = self.elems[i]
+            xi, yi, zi = self.coords            
+            ei = self.elems
             ri = self.cov.get(ei, 0.77)
             for j in range(i + 1, len(self.coords)):
                 xj, yj, zj = self.coords[j]
@@ -238,12 +238,12 @@ class AutoChemyViewer:
         for i, p in enumerate(self.norm):
             x, y, z = self._project(p)
             sx, sy = w * 0.5 + x * sc, h * 0.5 - y * sc
-            self.last[i] = (sx, sy, z)
+            self.last= (sx, sy, z)
             depth.append((z, i))
         depth.sort()
         bd = []
         for i, j in self.bonds:
-            x1, y1, z1 = self.last[i]
+            x1, y1, z1 = self.last            
             x2, y2, z2 = self.last[j]
             bd.append((((z1 + z2) * 0.5), i, j, x1, y1, x2, y2))
         bd.sort()
@@ -281,8 +281,8 @@ class AutoChemyViewer:
                     tube(x1 - px * sep, y1 - py * sep, x2 - px * sep, y2 - py * sep, 3.0)
 
             for _z, i in depth:
-                sx, sy, _ = self.last[i]
-                sym = self.elems[i]
+                sx, sy, _ = self.last                
+                sym = self.elems                
                 zr = max(0.62, min(1.72, self.view["zoom"] ** 0.68))
                 r = self.rad.get(sym, 11.0) * zr * 0.9
                 fill = self.color.get(sym, "#d1d5db")
@@ -308,8 +308,8 @@ class AutoChemyViewer:
             for _z, i, j, x1, y1, x2, y2 in bd:
                 self.canvas.create_line(x1, y1, x2, y2, fill="#7b8794", width=3)
             for _z, i in depth:
-                sx, sy, _ = self.last[i]
-                sym = self.elems[i]
+                sx, sy, _ = self.last                
+                sym = self.elems
                 zr = max(0.62, min(1.72, self.view["zoom"] ** 0.68))
                 r = self.rad.get(sym, 11.0) * zr * 1.5
                 fill = "#f8fafc" if sym == "H" else self.color.get(sym, "#d1d5db")
@@ -320,12 +320,12 @@ class AutoChemyViewer:
 
         if getattr(self, "show_labels", False) or getattr(self, "show_numbers", False):
             for _z, i in depth:
-                sx, sy, _ = self.last[i]
+                sx, sy, _ = self.last                
                 text = ""
                 if self.show_labels:
-                    text += self.elems[i]
-                if self.show_numbers:
-                    text += str(i + 1)
+                    text += self.elems                
+                    if self.show_numbers:
+                        text += str(i + 1)
                 
                 outline_color = "#ffffff" if not self.is_dark else "#0b1220"
                 text_color = "#000000" if not self.is_dark else "#ffffff"
@@ -338,14 +338,14 @@ class AutoChemyViewer:
 
         if len(self.selected_order) == 2:
             i, j = self.selected_order
-            x1, y1, z1 = self.coords[i]
+            x1, y1, z1 = self.coords            
             x2, y2, z2 = self.coords[j]
             dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**0.5
             self.canvas.create_text(8, 28, anchor="nw", fill=self.hint,  text=f"Distance: {dist:.3f} Å")
         elif len(self.selected_order) == 3:
             import math
             i, j, k = self.selected_order
-            x1, y1, z1 = self.coords[i]
+            x1, y1, z1 = self.coords            
             x2, y2, z2 = self.coords[j]
             x3, y3, z3 = self.coords[k]
             v1 = (x1 - x2, y1 - y2, z1 - z2)
@@ -360,7 +360,7 @@ class AutoChemyViewer:
         elif len(self.selected_order) == 4:
             import math
             i, j, k, l = self.selected_order
-            p1, p2, p3, p4 = self.coords[i], self.coords[j], self.coords[k], self.coords[l]
+            p1, p2, p3, p4 = self.coords, self.coords[j], self.coords[k], self.coords[l]
             b1 = (p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2])
             b2 = (p3[0]-p2[0], p3[1]-p2[1], p3[2]-p2[2])
             b3 = (p4[0]-p3[0], p4[1]-p3[1], p4[2]-p3[2])

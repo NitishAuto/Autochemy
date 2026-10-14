@@ -30,16 +30,13 @@ class OutputViewerModule(BaseModule):
     def get_name(self) -> str:
         return "Output Viewer"
     
-    def get_icon(self) -> str:
-        return "📊"
-    
     def create_ui(self):
         """Create the output viewer interface."""
         self.main_frame = ttk.Frame(self.parent_frame, padding="10")
         
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=self.get_name(),  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # Top frame for file selection
@@ -49,10 +46,10 @@ class OutputViewerModule(BaseModule):
         self.file_label = ttk.Label(top_frame, text="No file loaded")
         self.file_label.pack(side=tk.LEFT, padx=(0, 15))
         
-        self.open_button = ttk.Button(top_frame, text="📂 Open File", command=self.open_file)
+        self.open_button = ttk.Button(top_frame, text="Open File", command=self.open_file)
         self.open_button.pack(side=tk.LEFT, padx=(0, 10))
         
-        self.batch_button = ttk.Button(top_frame, text="⚙️ Batch Process", command=self.open_batch_dialog)
+        self.batch_button = ttk.Button(top_frame, text="Batch Process", command=self.open_batch_dialog)
         self.batch_button.pack(side=tk.LEFT)
         
         # Notebook for tabs
@@ -143,7 +140,7 @@ class OutputViewerModule(BaseModule):
 
             copy_btn = ttk.Button(
                 self.summary_content,
-                text="📋",
+                text="",
                 width=3,
                 command=lambda k=key: self.copy_single_value(k)
             )
@@ -151,7 +148,7 @@ class OutputViewerModule(BaseModule):
         
         copy_btn_frame = ttk.Frame(self.summary_content)
         copy_btn_frame.grid(row=len(fields), column=0, columnspan=2, pady=15)
-        copy_btn = ttk.Button(copy_btn_frame, text="📋 Copy All Data (Excel Format)", command=self.copy_summary_data)
+        copy_btn = ttk.Button(copy_btn_frame, text="Copy All Data (Excel Format)", command=self.copy_summary_data)
         copy_btn.pack()
     
     def _create_geometry_tab(self):
@@ -184,10 +181,10 @@ class OutputViewerModule(BaseModule):
         btn_frame = ttk.Frame(geometry_frame)
         btn_frame.pack(pady=8)
         
-        copy_btn = ttk.Button(btn_frame, text="📋 Copy Geometry (XYZ)", command=self.copy_geometry)
+        copy_btn = ttk.Button(btn_frame, text="Copy Geometry (XYZ)", command=self.copy_geometry)
         copy_btn.pack(side=tk.LEFT, padx=5)
         
-        copy_csv_btn = ttk.Button(btn_frame, text="📋 Copy as Excel (CSV)", command=self.copy_geometry_csv)
+        copy_csv_btn = ttk.Button(btn_frame, text="Copy as Excel (CSV)", command=self.copy_geometry_csv)
         copy_csv_btn.pack(side=tk.LEFT, padx=5)
     
     def _create_frequencies_tab(self):
@@ -215,7 +212,7 @@ class OutputViewerModule(BaseModule):
         scrollbar_y.pack(side="right", fill="y")
         scrollbar_x.pack(side="bottom", fill="x")
         
-        copy_btn = ttk.Button(freq_frame, text="📋 Copy Frequencies (Excel CSV)", command=self.copy_frequencies_csv)
+        copy_btn = ttk.Button(freq_frame, text="Copy Frequencies (Excel CSV)", command=self.copy_frequencies_csv)
         copy_btn.pack(pady=8)
     
     def _create_batch_tab(self):
@@ -264,13 +261,13 @@ class OutputViewerModule(BaseModule):
         btn_frame = ttk.Frame(batch_main_frame)
         btn_frame.pack(pady=8)
         
-        export_csv_btn = ttk.Button(btn_frame, text="💾 Export to CSV", command=self.export_batch_csv)
+        export_csv_btn = ttk.Button(btn_frame, text="Export to CSV", command=self.export_batch_csv)
         export_csv_btn.pack(side=tk.LEFT, padx=5)
         
-        copy_csv_btn = ttk.Button(btn_frame, text="📋 Copy as Excel (CSV)", command=self.copy_batch_csv)
+        copy_csv_btn = ttk.Button(btn_frame, text="Copy as Excel (CSV)", command=self.copy_batch_csv)
         copy_csv_btn.pack(side=tk.LEFT, padx=5)
         
-        clear_btn = ttk.Button(btn_frame, text="🗑️ Clear Results", command=self.clear_batch_results)
+        clear_btn = ttk.Button(btn_frame, text="Clear Results", command=self.clear_batch_results)
         clear_btn.pack(side=tk.LEFT, padx=5)
     
     def _create_raw_tab(self):

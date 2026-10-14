@@ -33,7 +33,7 @@
             body,
             text=(
                 "Edit the full ORCA input here. Apply copies back to the main preview on the right. "
-                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, …), "
+                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, ...), "
                 "then Generate Preview again if you change method or geometry."
             ),
             wraplength=740,

@@ -21,9 +21,6 @@ class StructureGeneratorModule(BaseModule):
     def get_name(self) -> str:
         return "Structure Generator"
 
-    def get_icon(self) -> str:
-        return "🔷"
-
     def create_ui(self):
         """Create the main UI for structure loading and preview."""
         self.main_frame = ttk.Frame(self.parent_frame)
@@ -120,11 +117,11 @@ class StructureGeneratorModule(BaseModule):
 
             self.current_structure = Structure.from_file(file_path)
             self._update_info_display()
-            self.preview_label.config(text="✓ Structure loaded successfully. Click 'Open 3D Viewer' to visualize.")
+            self.preview_label.config(text="Structure loaded successfully. Click 'Open 3D Viewer' to visualize.")
 
         except Exception as e:
             messagebox.showerror("Load Error", f"Failed to load structure with pymatgen:\n{e}")
-            self.preview_label.config(text="✗ Failed to load structure.")
+            self.preview_label.config(text="Failed to load structure.")
             traceback.print_exc()
 
     def _update_info_display(self):

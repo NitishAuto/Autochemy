@@ -28,16 +28,13 @@ class XTBHubModule(BaseModule):
     def get_name(self) -> str:
         return "xtb & Conformational Analysis"
 
-    def get_icon(self) -> str:
-        return "⚗️"
-
     def create_ui(self) -> None:
         self.main_frame = ttk.Frame(self.parent_frame, padding=10)
 
         header = ttk.Frame(self.main_frame)
         header.pack(fill=tk.X, pady=(0, 8))
         ttk.Label(header, text="xTB Workspace").pack(side=tk.LEFT)
-        self.back_btn = ttk.Button(header, text="← Back", command=self._show_home, state=tk.DISABLED)
+        self.back_btn = ttk.Button(header, text="Back", command=self._show_home, state=tk.DISABLED)
         self.back_btn.pack(side=tk.RIGHT)
 
         self.view_host = ttk.Frame(self.main_frame)

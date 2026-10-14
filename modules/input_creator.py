@@ -448,19 +448,19 @@ def _extract_rows_from_gjf_text(text: str):
     lines = (text or "").splitlines()
     i = 0
     n = len(lines)
-    while i < n and lines[i].strip().startswith("%"):
+    while i < n and lines.strip().startswith("%"):
         i += 1
-    while i < n and not lines[i].strip().startswith("#"):
+    while i < n and not lines.strip().startswith("#"):
         i += 1
     if i >= n:
         return []
-    while i < n and lines[i].strip():
+    while i < n and lines.strip():
         i += 1
-    while i < n and not lines[i].strip():
+    while i < n and not lines.strip():
         i += 1
-    while i < n and lines[i].strip():
+    while i < n and lines.strip():
         i += 1
-    while i < n and not lines[i].strip():
+    while i < n and not lines.strip():
         i += 1
     if i >= n:
         return []
@@ -550,7 +550,7 @@ def _last_xyz_frame_rows(text: str):
     i = 0
     n_lines = len(lines)
     while i < n_lines:
-        s = lines[i].strip()
+        s = lines.strip()
         if s.isdigit():
             n = int(s)
             if n > 0 and i + 2 + n <= n_lines:
@@ -771,11 +771,11 @@ class FunctionalSelectorPopup(tk.Toplevel):
         ttk.Radiobutton(header, text="By Developer", variable=self.sort_mode, value="Developer", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:").pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
         search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Functional", command=self._add_new_functional).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Functional", command=self._add_new_functional).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -908,7 +908,7 @@ class FunctionalSelectorPopup(tk.Toplevel):
                 lbl.bind("<Button-1>", click_handler)
                 lbl.bind("<Button-3>", right_click_handler)
                 
-                info_btn = tk.Label(top_row, text="ⓘ",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
+                info_btn = tk.Label(top_row, text="",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
                 info_btn.pack(side=tk.RIGHT, anchor="e", padx=(pad_gap, 0))
                 FloatingTooltip(info_btn, data['desc'])
                 
@@ -1028,11 +1028,11 @@ class BasisSelectorPopup(tk.Toplevel):
         ttk.Radiobutton(header, text="By Type", variable=self.sort_mode, value="Type", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:").pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
         search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Basis Set", command=self._add_new_basis).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Basis Set", command=self._add_new_basis).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -1165,7 +1165,7 @@ class BasisSelectorPopup(tk.Toplevel):
                 lbl.bind("<Button-1>", click_handler)
                 lbl.bind("<Button-3>", right_click_handler)
                 
-                info_btn = tk.Label(top_row, text="ⓘ",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
+                info_btn = tk.Label(top_row, text="",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
                 info_btn.pack(side=tk.RIGHT, anchor="e", padx=(pad_gap, 0))
                 FloatingTooltip(info_btn, data['desc'])
                 
@@ -1317,11 +1317,11 @@ class SolventSelectorPopup(tk.Toplevel):
         ttk.Radiobutton(header, text="All", variable=self.sort_mode, value="All", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:").pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
         search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Solvent", command=self._add_new_solvent).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Solvent", command=self._add_new_solvent).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -1889,9 +1889,6 @@ class InputCreatorModule5:
     def get_name(self):
         return "Input Creator"
 
-    def get_icon(self):
-        return "⚙️"
-
     def activate(self):
         self.frame.pack(fill=tk.BOTH, expand=True)
         self._apply_default_layout_on_activate()
@@ -1977,7 +1974,7 @@ class InputCreatorModule5:
         )
         self.subproject_combo.pack(side=tk.LEFT, padx=(0, 8))
         self.subproject_combo.bind("<<ComboboxSelected>>", self._on_project_selected)
-        ttk.Button(pf, text="Save current…", command=self._save_project_interactive).pack(
+        ttk.Button(pf, text="Save current...", command=self._save_project_interactive).pack(
             side=tk.LEFT, padx=2
         )
         ttk.Button(pf, text="Delete sub", command=self._delete_project_interactive).pack(
@@ -2009,7 +2006,7 @@ class InputCreatorModule5:
         switches_f.pack(side=tk.RIGHT)
 
         import webbrowser
-        ttk.Button(switches_f, text="📺 Watch Tutorial", command=lambda: webbrowser.open("https://youtu.be/DGfbHzG0zwc?si=qmIuWWVuD4vQM2-P")).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(switches_f, text="Watch Tutorial", command=lambda: webbrowser.open("https://youtu.be/DGfbHzG0zwc?si=qmIuWWVuD4vQM2-P")).pack(side=tk.RIGHT, padx=5)
 
         container = ttk.PanedWindow(main, orient=tk.HORIZONTAL)
         container.pack(fill=tk.BOTH, expand=True)
@@ -2113,7 +2110,7 @@ class InputCreatorModule5:
         self.xtb_process = None
         self.xtb_queue = None
         self.xtb_folder_var = tk.StringVar(
-            value="xTB output folder: (run a job to see path — project-local external_modules/xtb/xtb_runs/xtb_run_…)"
+            value="xTB output folder: (run a job to see path — project-local external_modules/xtb/xtb_runs/xtb_run_...)"
         )
 
         # Solvent & Environment
@@ -2238,7 +2235,7 @@ class InputCreatorModule5:
             f.pack(anchor="w", pady=(10, 2))
             ttk.Label(f, text=title).pack(side=tk.LEFT)
             if tooltip:
-                info = tk.Label(f, text=" ⓘ",  fg="#0284c7", cursor="question_arrow")
+                info = tk.Label(f, text=" ",  fg="#0284c7", cursor="question_arrow")
                 info.pack(side=tk.LEFT)
                 FloatingTooltip(info, tooltip)
                 self.beginner_info_icons.append(info)
@@ -2247,7 +2244,7 @@ class InputCreatorModule5:
             f = ttk.Frame(parent)
             f.pack(anchor="w", pady=pady)
             ttk.Label(f, text=text).pack(side=tk.LEFT)
-            info = tk.Label(f, text=" ⓘ",  fg="#0284c7", cursor="question_arrow")
+            info = tk.Label(f, text=" ",  fg="#0284c7", cursor="question_arrow")
             info.pack(side=tk.LEFT)
             FloatingTooltip(info, tooltip_text)
             self.beginner_info_icons.append(info)
@@ -2285,7 +2282,7 @@ class InputCreatorModule5:
         ttk.Label(self.spin_frame, text="Spin configuration:", width=18).pack(side=tk.LEFT)
         self.spin_cb = ttk.Combobox(self.spin_frame, textvariable=self.spin_state, state="readonly", width=42)
         self.spin_cb.pack(side=tk.LEFT, expand=False)
-        ttk.Button(self.spin_frame, text="💡 Auto-Recommend", command=self._auto_recommend_spin).pack(side=tk.LEFT, padx=(5,0))
+        ttk.Button(self.spin_frame, text="Auto-Recommend", command=self._auto_recommend_spin).pack(side=tk.LEFT, padx=(5,0))
         
         def _on_spin_change(*args):
             v = self.spin_state.get().split()[0]
@@ -2361,7 +2358,7 @@ class InputCreatorModule5:
             ttk.Button(btn_f, text="Save", command=_save).pack(side=tk.RIGHT, padx=(5, 0))
             ttk.Button(btn_f, text="Discard", command=_discard).pack(side=tk.RIGHT)
 
-        self.btn_edit_job = ttk.Button(task_f, text="✎ Edit", width=6, command=_edit_current_job_type)
+        self.btn_edit_job = ttk.Button(task_f, text="Edit", width=6, command=_edit_current_job_type)
         self.btn_edit_job.pack(side=tk.LEFT, padx=(5, 0))
 
         self.btn_manage_custom_jobs = ttk.Button(task_f, text="Custom Jobs...", command=self._open_custom_jobs_manager)
@@ -2500,7 +2497,7 @@ class InputCreatorModule5:
         self.scan_e2 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a2, width=3)
         self.scan_e3 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a3, width=3)
         self.scan_e4 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a4, width=3)
-        ttk.Button(self.scan_inputs_row, text="Pick atoms…", command=self._pick_scan_atoms).pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Button(self.scan_inputs_row, text="Pick atoms...", command=self._pick_scan_atoms).pack(side=tk.LEFT, padx=(8, 0))
         
         ttk.Label(self.scan_inputs_row_2, text="Start (Å/deg):").pack(side=tk.LEFT)
         ttk.Entry(self.scan_inputs_row_2, textvariable=self.scan_start, width=6).pack(side=tk.LEFT, padx=(2, 8))
@@ -2549,10 +2546,10 @@ class InputCreatorModule5:
                 if cv in self.constraint_rows:
                     self.constraint_rows.remove(cv)
             ttk.Button(row_f, text="Pick", width=5, command=lambda cur=cv: self._pick_constraint_atoms(cur)).pack(side=tk.LEFT, padx=(3, 0))
-            ttk.Button(row_f, text="-", width=2, command=_del_row).pack(side=tk.LEFT, padx=5)
+            ttk.Button(row_f, text="Delete", width=2, command=_del_row).pack(side=tk.LEFT, padx=5)
             self.constraint_rows.append(cv)
 
-        ttk.Button(self.const_opts_frame, text="+ Add Constraint", command=_add_constraint).pack(side=tk.TOP, anchor="w", pady=(5,0))
+        ttk.Button(self.const_opts_frame, text="Add Constraint", command=_add_constraint).pack(side=tk.TOP, anchor="w", pady=(5,0))
         self._add_constraint_ui = _add_constraint
 
         self.neb_frame = ttk.LabelFrame(self.job_opt_frame, text="NEB-TS pathway", padding=(6, 4))
@@ -2567,8 +2564,8 @@ class InputCreatorModule5:
         ttk.Entry(neb_r2, textvariable=self.neb_product_path, width=36).pack(
             side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 4)
         )
-        ttk.Button(neb_r2, text="Browse…", command=self._browse_neb_product).pack(side=tk.LEFT, padx=2)
-        ttk.Button(neb_r2, text="Paste / edit…", command=self._open_neb_product_editor).pack(side=tk.LEFT, padx=2)
+        ttk.Button(neb_r2, text="Browse...", command=self._browse_neb_product).pack(side=tk.LEFT, padx=2)
+        ttk.Button(neb_r2, text="Paste / edit...", command=self._open_neb_product_editor).pack(side=tk.LEFT, padx=2)
 
         ttk.Label(
             self.neb_frame,
@@ -2971,7 +2968,7 @@ class InputCreatorModule5:
         self.split_rows_frame = ttk.Frame(self.split_container)
         self.split_rows_frame.pack(fill=tk.X)
         
-        ttk.Button(self.split_container, text="+ Add Split Assignment", command=lambda: self._add_split_row_cb()).pack(anchor="w", pady=(2, 0))
+        ttk.Button(self.split_container, text="Add Split Assignment", command=lambda: self._add_split_row_cb()).pack(anchor="w", pady=(2, 0))
         
         def _add_split_row(target="", cmd_type="newgto", val="def2-TZVP"):
             row_frame = ttk.Frame(self.split_rows_frame)
@@ -2997,7 +2994,7 @@ class InputCreatorModule5:
                 row_frame.destroy()
                 self.split_rows = [r for r in self.split_rows if r["frame"] != row_frame]
                 
-            ttk.Button(row_frame, text="✖", width=3, command=_remove).pack(side=tk.LEFT, padx=2)
+            ttk.Button(row_frame, text="Remove", width=3, command=_remove).pack(side=tk.LEFT, padx=2)
             self.split_rows.append({"frame": row_frame, "target": tgt_var, "cmd": cmd_var, "val": val_var, "target_cb": tgt_cb})
             
         self._add_split_row_cb = _add_split_row
@@ -3065,28 +3062,28 @@ class InputCreatorModule5:
 
             if ri != "None":
                 if "Hybrid" in func_data and ri == "RI":
-                    w.append("💡 Recommendation: Hybrid functionals strongly prefer RIJCOSX instead of RI")
+                    w.append("Recommendation: Hybrid functionals strongly prefer RIJCOSX instead of RI")
                 elif "GGA" in func_data and "Hybrid" not in func_data and ri == "RIJCOSX":
-                    w.append("💡 Recommendation: Standard GGA functionally optimally use RI")
+                    w.append("Recommendation: Standard GGA functionally optimally use RI")
             
             if "ma-def2" in bas and ri != "None" and aux != "AutoAux":
-                w.append("💡 Recommendation: ma-def2 diffuse basis requires AutoAux auxiliary basis")
+                w.append("Recommendation: ma-def2 diffuse basis requires AutoAux auxiliary basis")
                 
             if "cc-p" in bas and "aug-" not in bas and ri != "None" and aux == "def2/J":
-                w.append("⚠️ Warning: Correlation consistent basis needs /C or /JK aux basis")
+                w.append("Warning: Correlation consistent basis needs /C or /JK aux basis")
                 
             if is_minnesota:
                 if disp != "None" and "D3" in disp:
-                    w.append("💡 Recommendation: Minnesota functionals intrinsically account for dispersion, D3BJ is generally not required.")
+                    w.append("Recommendation: Minnesota functionals intrinsically account for dispersion, D3BJ is generally not required.")
                 if grid not in ["defgrid3"]:
-                    w.append("⚠️ Warning: Minnesota functionals heavily depend on the integration grid. defgrid3 is highly recommended.")
+                    w.append("Warning: Minnesota functionals heavily depend on the integration grid. defgrid3 is highly recommended.")
             
             if ri != "None" and aux == "None":
-                w.append("⚠️ Missing Auxiliary Basis for RI Approximation!")
+                w.append("Missing Auxiliary Basis for RI Approximation!")
             elif "def2/J" in aux and "def2" not in bas:
-                w.append("⚠️ def2/J auxiliary basis requires a def2 family main basis.")
+                w.append("def2/J auxiliary basis requires a def2 family main basis.")
             elif "3c" in func_data and (disp != "None" or ri != "None"):
-                w.append("⚠️ Composite '3c' methods inherently contain dispersion & RI. Turn off.")
+                w.append("Composite '3c' methods inherently contain dispersion & RI. Turn off.")
                 
             if w:
                 self.approx_warning_var.set("\n".join(w))
@@ -3475,7 +3472,7 @@ class InputCreatorModule5:
         )
         self.btn_local_visualize_out.pack(side=tk.LEFT)
         ttk.Button(local_btn_row_2, text="Clear Log", command=self._clear_local_job_log).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(local_btn_row_2, text="📜 History", command=self._show_job_history_dialog).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(local_btn_row_2, text="History", command=self._show_job_history_dialog).pack(side=tk.LEFT, padx=(6, 0))
         self.local_job_status_var = tk.StringVar(value="Ready for local submission.")
         ttk.Label(local_btn_row_2, textvariable=self.local_job_status_var).pack(side=tk.RIGHT)
 
@@ -3499,8 +3496,8 @@ class InputCreatorModule5:
         right_ctrl = ttk.Frame(top_split)
         right_ctrl.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
 
-        ttk.Button(right_ctrl, text="ℹ Cite xTB", command=self._show_xtb_citation).pack(side=tk.TOP, anchor="e", pady=(0, 4))
-        ttk.Button(right_ctrl, text="⚙ xTB Settings", command=self._open_xtb_settings).pack(side=tk.TOP, anchor="e", pady=(0, 4))
+        ttk.Button(right_ctrl, text="Cite xTB", command=self._show_xtb_citation).pack(side=tk.TOP, anchor="e", pady=(0, 4))
+        ttk.Button(right_ctrl, text="xTB Settings", command=self._open_xtb_settings).pack(side=tk.TOP, anchor="e", pady=(0, 4))
         ttk.Label(
             right_ctrl,
             text="xTB developed by Prof. Stefan Grimme and coworkers.",
@@ -3510,7 +3507,7 @@ class InputCreatorModule5:
 
         xtb_warn = ttk.Label(
             left_ctrl,
-            text="⚠ xTB is a semiempirical tight-binding method \n"
+            text="xTB is a semiempirical tight-binding method \n"
                  "    Use it for quick screening / geometry pre-check before full DFT.",
              foreground="#c87000", wraplength=700, justify="left",
         )
@@ -3521,7 +3518,7 @@ class InputCreatorModule5:
 
         self.btn_run_xtb = tk.Button(
             run_btn_frame, 
-            text="▶ Run xTB Preview", 
+            text="Run xTB Preview", 
             command=self._start_xtb_job,
             bg="#0284c7", fg="#ffffff",  
             activebackground="#0369a1", activeforeground="#ffffff",
@@ -3670,7 +3667,7 @@ class InputCreatorModule5:
         xtb_bottom_btns = ttk.Frame(tab_xtb)
         xtb_bottom_btns.pack(pady=(10, 0))
 
-        ttk.Button(xtb_bottom_btns, text="✓ Use Output XYZ in Main Input",
+        ttk.Button(xtb_bottom_btns, text="Use Output XYZ in Main Input",
                    command=self._use_xtb_geom).pack(side=tk.LEFT, padx=5)
 
         self.btn_scan_graph_xtb = ttk.Button(xtb_bottom_btns, text="Show Scan Graph",
@@ -3728,7 +3725,7 @@ class InputCreatorModule5:
                 c = int(self.charge.get())
                 m = int(self.mult.get())
             except ValueError:
-                self.cm_warning_var.set("⚠️ Charge and Multiplicity must be integers")
+                self.cm_warning_var.set("Charge and Multiplicity must be integers")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
@@ -3770,17 +3767,17 @@ class InputCreatorModule5:
                 
             n_e = sum_z - c
             if n_e < 0:
-                self.cm_warning_var.set("⚠️ Charge is too positive for the loaded atoms.")
+                self.cm_warning_var.set("Charge is too positive for the loaded atoms.")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
             if m < 1:
-                self.cm_warning_var.set("⚠️ Multiplicity must be ≥ 1")
+                self.cm_warning_var.set("Multiplicity must be ≥ 1")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
             if (n_e % 2) != ((m - 1) % 2):
-                self.cm_warning_var.set(f"⚠️ Invalid! {n_e}e⁻ system requires {'ODD' if n_e%2==0 else 'EVEN'} multiplicity.")
+                self.cm_warning_var.set(f"Invalid! {n_e}e⁻ system requires {'ODD' if n_e%2==0 else 'EVEN'} multiplicity.")
                 self.cm_warn_frame.pack(fill=tk.X)
             else:
                 self.cm_warn_frame.pack_forget()
@@ -4025,7 +4022,7 @@ class InputCreatorModule5:
             self._toggle_user_mode_cb()
         if hasattr(self, "_xtb_beginner_primary_btn"):
             self._xtb_beginner_primary_btn.config(
-                text="▶ Get xTB Preview" if is_beginner else "▶ Run xTB Preview"
+                text="Get xTB Preview" if is_beginner else "Run xTB Preview"
             )
         for w in getattr(self, "_xtb_advanced_widgets", ()):
             if w is None:
@@ -5064,10 +5061,10 @@ class InputCreatorModule5:
         msg = f"--- System Analysis ---\nTotal Electrons: {total_electrons}\nCharge: {chg}\nMultiplicity: {mult}\n\n"
         
         if total_electrons % 2 != 0 and mult % 2 != 0:
-            messagebox.showerror("Spin Parity ERROR", msg + "⚠️ An odd number of electrons must have an even multiplicity (Doublet, Quartet, etc.). Please reconsider your input!")
+            messagebox.showerror("Spin Parity ERROR", msg + "An odd number of electrons must have an even multiplicity (Doublet, Quartet, etc.). Please reconsider your input!")
             return
         if total_electrons % 2 == 0 and mult % 2 == 0:
-            messagebox.showerror("Spin Parity ERROR", msg + "⚠️ An even number of electrons must have an odd multiplicity (Singlet, Triplet, etc.). Please reconsider your input!")
+            messagebox.showerror("Spin Parity ERROR", msg + "An even number of electrons must have an odd multiplicity (Singlet, Triplet, etc.). Please reconsider your input!")
             return
             
         th = self.method_type.get()
@@ -7340,7 +7337,7 @@ class InputCreatorModule5:
             body,
             text=(
                 "Edit the full ORCA input here. Apply copies back to the main preview on the right. "
-                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, …), "
+                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, ...), "
                 "then Generate Preview again if you change method or geometry."
             ),
             wraplength=740,
@@ -8814,7 +8811,7 @@ class InputCreatorModule5:
                     messagebox.showwarning(
                         "NEB-TS",
                         "NEB-TS requires the product (end-point) structure.\n\n"
-                        "Use “Browse…” or “Paste / edit…” in the NEB-TS pathway section, "
+                        "Use “Browse...” or “Paste / edit...” in the NEB-TS pathway section, "
                         "or save coordinates as an .xyz file and choose it.",
                     )
 
@@ -10044,7 +10041,7 @@ class InputCreatorModule5:
         for key, text in refs:
             row = ttk.Frame(win)
             row.pack(fill=tk.X, padx=20, pady=2)
-            ttk.Label(row, text=f"• {text}",  wraplength=460).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ttk.Label(row, text=f"- {text}",  wraplength=460).pack(side=tk.LEFT, fill=tk.X, expand=True)
             ttk.Button(row, text="Open DOI",
                        command=lambda u=papers[key]: webbrowser.open(u)).pack(side=tk.RIGHT, padx=(8, 0))
 

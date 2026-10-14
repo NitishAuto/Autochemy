@@ -16,9 +16,6 @@ class AboutUsModule(BaseModule):
     def get_name(self) -> str:
         return "About us"
 
-    def get_icon(self) -> str:
-        return "✨"
-
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame)
         
@@ -103,7 +100,7 @@ class AboutUsModule(BaseModule):
         else:
             self.canvas.create_text(
                 cx, y_cursor,
-                text="🛡️",
+                text="",
                 
                 justify=tk.CENTER,
                 anchor=tk.N

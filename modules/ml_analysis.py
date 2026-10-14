@@ -39,8 +39,7 @@ def plot_ml_results(results_dict):
     axes = axes.flatten()
 
     for i, (model_name, data) in enumerate(results_dict.items()):
-        ax = axes[i]
-
+        ax = axes
         ax.scatter(data["y_train_true"], data["y_train_pred"],
                    label="Train", alpha=0.6, marker="o")
 
@@ -68,9 +67,6 @@ class MLAnalysisModule(BaseModule):
     def get_name(self):
         return "ML"
 
-    def get_icon(self):
-        return "🤖"
-
     # ============================================================
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame, padding=25)
@@ -83,7 +79,7 @@ class MLAnalysisModule(BaseModule):
         # ===== HEADER =====
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=self.get_name(),  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # ===== FILE INPUT =====
@@ -139,7 +135,7 @@ class MLAnalysisModule(BaseModule):
         ttk.Entry(settings_frame, textvariable=self.test_size, width=5).grid(row=0, column=3)
 
         # ===== RUN =====
-        ttk.Button(self.main_frame, text="🚀 Run ML",
+        ttk.Button(self.main_frame, text="Run ML",
                    command=self.run).pack(pady=10)
 
         # ===== OUTPUT =====

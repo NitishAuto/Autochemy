@@ -56,19 +56,16 @@ class XTBModule(BaseModule):
     def get_name(self) -> str:
         return "xTB"
 
-    def get_icon(self) -> str:
-        return "⚗️"
-
     def create_ui(self) -> None:
         self.main_frame = ttk.Frame(self.parent_frame, padding=10)
 
         top = ttk.Frame(self.main_frame)
         top.pack(fill=tk.X, pady=(0, 8))
         ttk.Label(top, text="xTB (GFN)").pack(side=tk.LEFT)
-        ttk.Button(top, text="ℹ Cite xTB", command=self._show_citation).pack(side=tk.RIGHT, padx=(4, 0))
+        ttk.Button(top, text="Cite xTB", command=self._show_citation).pack(side=tk.RIGHT, padx=(4, 0))
         ttk.Button(
             top,
-            text="📖 Setup docs",
+            text="Setup docs",
             command=lambda: webbrowser.open("https://xtb-docs.readthedocs.io/en/latest/setup.html"),
         ).pack(side=tk.RIGHT)
 
@@ -94,8 +91,8 @@ class XTBModule(BaseModule):
         ttk.Entry(cm, textvariable=self.mult, width=6).pack(side=tk.LEFT, padx=(2, 0))
         geo_btns = ttk.Frame(gf)
         geo_btns.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 4))
-        ttk.Button(geo_btns, text="Load XYZ…", command=self._load_xyz).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Button(geo_btns, text="Save XYZ…", command=self._save_xyz).pack(side=tk.LEFT)
+        ttk.Button(geo_btns, text="Load XYZ...", command=self._load_xyz).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Button(geo_btns, text="Save XYZ...", command=self._save_xyz).pack(side=tk.LEFT)
 
         self.geom_txt = tk.Text(gf, height=14, wrap=tk.NONE)
         gy = ttk.Scrollbar(gf, orient=tk.VERTICAL, command=self.geom_txt.yview)
@@ -124,7 +121,7 @@ class XTBModule(BaseModule):
         
         self.xtb_settings_summary = ttk.Label(jf, text="")
         self.xtb_settings_summary.grid(row=1, column=0, columnspan=2, sticky="w", padx=4, pady=2)
-        ttk.Button(jf, text="⚙ xTB Settings", command=self._open_xtb_settings).grid(row=2, column=0, columnspan=2, sticky="w", padx=4, pady=2)
+        ttk.Button(jf, text="xTB Settings", command=self._open_xtb_settings).grid(row=2, column=0, columnspan=2, sticky="w", padx=4, pady=2)
 
         self.job_hint = ttk.Label(jf, text="")
         self.job_hint.grid(row=3, column=0, columnspan=2, sticky="w", padx=4, pady=4)
@@ -164,7 +161,7 @@ class XTBModule(BaseModule):
         cr_top.pack(fill=tk.X, padx=4, pady=4)
         self.const_rows_frame = ttk.Frame(self.const_frame)
         self.const_rows_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
-        ttk.Button(cr_top, text="+ Add constraint", command=self._add_constraint_row).pack(side=tk.LEFT)
+        ttk.Button(cr_top, text="Add constraint", command=self._add_constraint_row).pack(side=tk.LEFT)
 
         
 
@@ -172,8 +169,8 @@ class XTBModule(BaseModule):
         inf.pack(fill=tk.X)
         ib = ttk.Frame(inf)
         ib.pack(fill=tk.X, padx=4, pady=6)
-        ttk.Button(ib, text="Save xcontrol.inp…", command=self._save_xcontrol_dialog).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Button(ib, text="Save run script…", command=self._save_run_script_dialog).pack(side=tk.LEFT)
+        ttk.Button(ib, text="Save xcontrol.inp...", command=self._save_xcontrol_dialog).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Button(ib, text="Save run script...", command=self._save_run_script_dialog).pack(side=tk.LEFT)
 
         self.job_cb.bind("<<ComboboxSelected>>", lambda e: self._on_job_changed())
         self.scan_ctype.trace_add("write", lambda *a: self._refresh_scan_atom_entries())
@@ -183,7 +180,7 @@ class XTBModule(BaseModule):
         # --- Right: run + log ---
         runf = ttk.Frame(right)
         runf.pack(fill=tk.X, pady=(0, 8))
-        self.btn_run = ttk.Button(runf, text="▶ Run xTB", command=self._start_run)
+        self.btn_run = ttk.Button(runf, text="Run xTB", command=self._start_run)
         self.btn_run.pack(side=tk.LEFT, padx=(0, 6))
         self.btn_stop = ttk.Button(runf, text="Stop", command=self._stop_run, state=tk.DISABLED)
         self.btn_stop.pack(side=tk.LEFT, padx=(0, 12))
@@ -196,7 +193,7 @@ class XTBModule(BaseModule):
             state="readonly",
             width=14,
         ).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(runf, text="Open XYZ file…", command=self._open_xyz_external).pack(side=tk.LEFT)
+        ttk.Button(runf, text="Open XYZ file...", command=self._open_xyz_external).pack(side=tk.LEFT)
 
 
         ttk.Button(runf, text="Open folder", command=self._open_output_folder).pack(side=tk.RIGHT, padx=(0, 6))
@@ -578,10 +575,10 @@ class XTBModule(BaseModule):
 
     def _refresh_job_hint(self) -> None:
         m = {
-            "Single point": "Command: xtb input.xyz --chrg … --uhf … --gfn …",
-            "Geometry optimization": "Command: xtb input.xyz --opt …",
-            "Frequencies (Hessian)": "Command: xtb input.xyz --hess …",
-            "Optimization + frequencies": "Command: xtb input.xyz --ohess …",
+            "Single point": "Command: xtb input.xyz --chrg ... --uhf ... --gfn ...",
+            "Geometry optimization": "Command: xtb input.xyz --opt ...",
+            "Frequencies (Hessian)": "Command: xtb input.xyz --hess ...",
+            "Optimization + frequencies": "Command: xtb input.xyz --ohess ...",
             "Relaxed PES scan": "Uses xcontrol.inp: $constrain + $scan (relaxed scan)",
             "Constrained optimization": "Uses xcontrol.inp with frozen distances/angles/dihedrals",
         }
@@ -626,7 +623,7 @@ class XTBModule(BaseModule):
             if cv in self.constraint_rows:
                 self.constraint_rows.remove(cv)
 
-        ttk.Button(row_f, text="−", width=2, command=_del).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row_f, text="-", width=2, command=_del).pack(side=tk.LEFT, padx=5)
         self.constraint_rows.append(cv)
 
     def _map_job_choice_to_xtb(self) -> str:
@@ -841,7 +838,7 @@ class XTBModule(BaseModule):
         self.num_txt.delete("1.0", tk.END)
         self.num_txt.insert("1.0", "Computing... values will appear here after run.")
         self.num_txt.config(state=tk.DISABLED)
-        self.log_txt.insert(tk.END, f"Starting GFN{self.xtb_gfn_level.get()}-xTB ({job})…\n")
+        self.log_txt.insert(tk.END, f"Starting GFN{self.xtb_gfn_level.get()}-xTB ({job})...\n")
 
         self.xtb_queue = queue.Queue()
         self._set_last_run_state(engine="xtb", folder=None, job=job, is_scan=False)

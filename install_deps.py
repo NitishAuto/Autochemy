@@ -55,7 +55,7 @@ def main():
     content = tk.Frame(frame, bg="#ffffff")
     content.pack(expand=True, fill=tk.BOTH, padx=30, pady=25)
     
-    lbl_title = tk.Label(content, text="🧪 AutoChemy Setup",  fg="#0b5cab", bg="#ffffff")
+    lbl_title = tk.Label(content, text="AutoChemy Setup",  fg="#0b5cab", bg="#ffffff")
     lbl_title.pack(pady=(0, 10))
     
     lbl_desc = tk.Label(content, text="Installing required libraries (Pandas, Numpy, etc.)\nThis may take a few minutes depending on your internet speed.", 
@@ -64,10 +64,10 @@ def main():
     
     # Animated text frames mimicking a GIF
     frames = [
-        "⚗️ Synthesizing packages .  ",
-        "⚗️ Synthesizing packages .. ",
-        "⚗️ Synthesizing packages ...",
-        "⚗️ Synthesizing packages  . "
+        "Synthesizing packages .  ",
+        "Synthesizing packages .. ",
+        "Synthesizing packages ...",
+        "Synthesizing packages  . "
     ]
     lbl_anim = tk.Label(content, text=frames[0],  bg="#ffffff", fg="#e67e22")
     lbl_anim.pack(pady=(0, 15))

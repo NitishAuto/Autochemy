@@ -27,11 +27,6 @@ class BaseModule(ABC):
         pass
     
     @abstractmethod
-    def get_icon(self) -> str:
-        """Return an icon/emoji for the module (for UI display)."""
-        pass
-    
-    @abstractmethod
     def create_ui(self):
         """Create and initialize the module's user interface."""
         pass

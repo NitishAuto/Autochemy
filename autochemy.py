@@ -74,9 +74,6 @@ class PeriodicPlaceholderModule(BaseModule):
     def get_name(self) -> str:
         return "Periodic"
 
-    def get_icon(self) -> str:
-        return "◌"
-
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame)
         card = ttk.Frame(self.main_frame)
@@ -94,9 +91,6 @@ class JobManagerPlaceholderModule(BaseModule):
 
     def get_name(self) -> str:
         return "Job Manager"
-
-    def get_icon(self) -> str:
-        return "⌂"
 
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame)
@@ -243,7 +237,7 @@ class ORCASoftwareSuite:
         self._sidebar_group_header.pack(fill=tk.X, pady=(8, 4))
         self._sidebar_back_button = ttk.Button(
             self._sidebar_group_header,
-            text="← Back",
+            text="Back",
             command=self._show_top_sidebar,
             style="Sidebar.TButton",
             width=10,
@@ -369,37 +363,31 @@ class ORCASoftwareSuite:
 
         molecular_btn = ttk.Button(
             self._sidebar_top_frame,
-            text="🧬 Molecular",
+            text="Molecular",
             command=self._show_molecular_sidebar,
             style="Sidebar.TButton",
         )
         molecular_btn.pack(fill=tk.X, pady=(0, 3))
 
-        periodic_module = self.modules.get("Periodic")
-        periodic_text = f"{periodic_module.get_icon()} Periodic" if periodic_module else "◌ Periodic"
         periodic_btn = ttk.Button(
             self._sidebar_top_frame,
-            text=periodic_text,
+            text="Periodic",
             command=self._show_periodic_sidebar,
             style="Sidebar.TButton",
         )
         periodic_btn.pack(fill=tk.X, pady=3)
 
-        job_manager_module = self.modules.get("Job Manager")
-        job_manager_text = f"{job_manager_module.get_icon()} Job Manager" if job_manager_module else "⌂ Job Manager"
         job_manager_btn = ttk.Button(
             self._sidebar_top_frame,
-            text=job_manager_text,
+            text="Job Manager",
             command=self._show_job_manager_sidebar,
             style="Sidebar.TButton",
         )
         job_manager_btn.pack(fill=tk.X, pady=3)
 
-        about_module = self.modules.get("About us")
-        about_text = f"{about_module.get_icon()} About us" if about_module else "✨ About us"
         about_btn = ttk.Button(
             self._sidebar_top_frame,
-            text=about_text,
+            text="About us",
             command=lambda: self._switch_module("About us"),
             style="Sidebar.TButton",
         )
@@ -411,7 +399,7 @@ class ORCASoftwareSuite:
                 continue
             btn = ttk.Button(
                 self._molecular_buttons_frame,
-                text=f"{module.get_icon()} {module_name}",
+                text=module_name,
                 command=lambda name=module_name: self._switch_module(name),
                 style="Sidebar.TButton",
             )
@@ -1046,7 +1034,7 @@ Modules:
 - xtb & Conformational Analysis: Combined workspace for xTB tools plus conformational sampling (GOAT/CREST)
 - About us: CCL IIT Roorkee — credits and group website
 
-Use the Dark mode switch (top-right) or View menu for theme; editor font: Ctrl+/Ctrl−.
+Use the Dark mode switch (top-right) or View menu for theme; editor font: Ctrl+/Ctrl-.
 
 Version: 1.0.0
 """

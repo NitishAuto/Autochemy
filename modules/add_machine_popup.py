@@ -342,7 +342,7 @@ class AddMachinePopup(tk.Toplevel):
             name = sel[0]
             for i, p in enumerate(self.partitions):
                 if p["name"] == name:
-                    self.partitions[i]["custom_script"] = self.txt_script.get("1.0", tk.END).strip()
+                    self.partitions["custom_script"] = self.txt_script.get("1.0", tk.END).strip()
                     if hasattr(self, 'parse_feedback'):
                         self.parse_feedback.set(f"Successfully saved script for queue '{name}'!")
                     return
@@ -366,7 +366,7 @@ class AddMachinePopup(tk.Toplevel):
         
         for i, p in enumerate(self.partitions):
             if p["name"] == name:
-                self.partitions[i] = p_data
+                self.partitions= p_data
                 self._refresh_partition_list()
                 return
                 

@@ -45,16 +45,13 @@ class ConformationalSamplingModule(BaseModule):
     def get_name(self) -> str:
         return "Conformational Sampling"
 
-    def get_icon(self) -> str:
-        return "🧭"
-
     def create_ui(self) -> None:
         self.main_frame = ttk.Frame(self.parent_frame, padding=10)
 
         header = ttk.Frame(self.main_frame)
         header.pack(fill=tk.X, pady=(0, 8))
         ttk.Label(header, text="Conformational Sampling").pack(side=tk.LEFT)
-        self.back_btn = ttk.Button(header, text="← Back to options", command=self._show_home)
+        self.back_btn = ttk.Button(header, text="Back", command=self._show_home)
         self.back_btn.pack(side=tk.RIGHT)
 
         self.view_host = ttk.Frame(self.main_frame)
@@ -320,7 +317,7 @@ class ConformationalSamplingModule(BaseModule):
         if sys.platform == "win32":
             ttk.Label(
                 wsl_f,
-                text="ℹ Windows Note: CREST requires a Linux environment. You can install WSL (Windows Subsystem for Linux)\nby running 'wsl --install' in PowerShell, then compile or run CREST binaries within WSL.",
+                text="Windows Note: CREST requires a Linux environment. You can install WSL (Windows Subsystem for Linux)\nby running 'wsl --install' in PowerShell, then compile or run CREST binaries within WSL.",
                 
                 foreground="#0284c7"
             ).pack(anchor="w")
@@ -428,7 +425,7 @@ class ConformationalSamplingModule(BaseModule):
 
         tpl_row = ttk.Frame(orca_box)
         tpl_row.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(8, 0))
-        ttk.Button(tpl_row, text="Import template from Input Creator…", command=self._import_template_from_ic5).pack(
+        ttk.Button(tpl_row, text="Import template from Input Creator...", command=self._import_template_from_ic5).pack(
             side=tk.LEFT, padx=(0, 8)
         )
         ttk.Button(tpl_row, text="Open Input Creator", command=self._switch_to_input_creator_5).pack(side=tk.LEFT, padx=(0, 8))
@@ -691,22 +688,22 @@ class ConformationalSamplingModule(BaseModule):
         i = 0
         replaced = False
         while i < len(lines):
-            stripped = lines[i].strip()
+            stripped = lines.strip()
             low = stripped.lower()
             if low.startswith("* xyz") or low.startswith("*xyz"):
                 replaced = True
                 out.append(f"* xyz {ch} {mult}")
                 i += 1
-                while i < len(lines) and lines[i].strip() != "*":
+                while i < len(lines) and lines.strip() != "*":
                     i += 1
                 out.extend(atom_lines)
                 out.append("*")
-                while i < len(lines) and lines[i].strip() != "*":
+                while i < len(lines) and lines.strip() != "*":
                     i += 1
-                if i < len(lines) and lines[i].strip() == "*":
+                if i < len(lines) and lines.strip() == "*":
                     i += 1
                 continue
-            out.append(lines[i])
+            out.append(lines)
             i += 1
         if not replaced:
             body = "\n".join(out).rstrip()
@@ -813,7 +810,7 @@ class ConformationalSamplingModule(BaseModule):
         ]
         start_idx = -1
         for i in range(len(lines) - 1, -1, -1):
-            if any(p.lower() in lines[i].lower() for p in patterns):
+            if any(p.lower() in lines.lower() for p in patterns):
                 start_idx = i
                 break
         if start_idx < 0:
@@ -861,7 +858,7 @@ class ConformationalSamplingModule(BaseModule):
 
         def find_last_orientation(tag: str):
             for i in range(len(lines) - 1, -1, -1):
-                if tag in lines[i]:
+                if tag in lines:
                     return i
             return -1
 
@@ -1371,11 +1368,11 @@ class ConformationalSamplingModule(BaseModule):
         out_dir = os.path.join(folder, "conformers_xyz")
         os.makedirs(out_dir, exist_ok=True)
         if energies:
-            order = sorted(indices, key=lambda i: energies[i])
+            order = sorted(indices, key=lambda i: energies)
         else:
             order = indices
         for rank, i in enumerate(order, start=1):
-            comment, atoms = confs[i]
+            comment, atoms = confs            
             name = f"{rank}_conformer_lowest.xyz" if rank == 1 else f"{rank}_conformer.xyz"
             path = os.path.join(out_dir, name)
             with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -1387,12 +1384,12 @@ class ConformationalSamplingModule(BaseModule):
         out_dir = os.path.join(folder, "orca_inputs")
         os.makedirs(out_dir, exist_ok=True)
         if energies:
-            order = sorted(indices, key=lambda i: energies[i])
+            order = sorted(indices, key=lambda i: energies)
         else:
             order = indices
         template = getattr(self, "_orca_inp_template", None)
         for rank, i in enumerate(order, start=1):
-            _, atoms = confs[i]
+            _, atoms = confs            
             name = f"{rank}_conformer.inp"
             path = os.path.join(out_dir, name)
             atom_lines = list(atoms)
