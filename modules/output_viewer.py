@@ -39,14 +39,14 @@ class OutputViewerModule(BaseModule):
         
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}", font=("Segoe UI", 13, "bold"), foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # Top frame for file selection
         top_frame = ttk.Frame(self.main_frame)
         top_frame.pack(fill=tk.X, pady=(0, 10))
         
-        self.file_label = ttk.Label(top_frame, text="No file loaded", font=("Segoe UI", 10))
+        self.file_label = ttk.Label(top_frame, text="No file loaded")
         self.file_label.pack(side=tk.LEFT, padx=(0, 15))
         
         self.open_button = ttk.Button(top_frame, text="📂 Open File", command=self.open_file)
@@ -134,10 +134,10 @@ class OutputViewerModule(BaseModule):
         ]
         
         for i, (label_text, key) in enumerate(fields):
-            label = ttk.Label(self.summary_content, text=f"{label_text}:", font=("Segoe UI", 10, "bold"))
+            label = ttk.Label(self.summary_content, text=f"{label_text}:")
             label.grid(row=i, column=0, sticky="w", padx=10, pady=6)
             
-            value_label = ttk.Label(self.summary_content, text="N/A", font=("Segoe UI", 10))
+            value_label = ttk.Label(self.summary_content, text="N/A")
             value_label.grid(row=i, column=1, sticky="w", padx=10, pady=6)
             self.summary_labels[key] = value_label
 
@@ -278,7 +278,7 @@ class OutputViewerModule(BaseModule):
         raw_frame = ttk.Frame(self.raw_frame)
         raw_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        self.raw_text = scrolledtext.ScrolledText(raw_frame, wrap=tk.WORD, font=("Courier", 9))
+        self.raw_text = scrolledtext.ScrolledText(raw_frame, wrap=tk.WORD)
         self.raw_text.pack(fill=tk.BOTH, expand=True)
     
     def open_file(self):
@@ -503,7 +503,7 @@ class OutputViewerModule(BaseModule):
         main_frame = ttk.Frame(dialog, padding="20")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(main_frame, text="Select processing mode:", font=("Arial", 10, "bold")).pack(pady=10)
+        ttk.Label(main_frame, text="Select processing mode:").pack(pady=10)
         
         btn1 = ttk.Button(
             main_frame,

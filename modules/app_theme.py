@@ -8,25 +8,9 @@ import tkinter.font as tkfont
 from tkinter import ttk
 from typing import Any, Dict
 
-_FONT_CANDIDATES = (
-    "Cascadia Mono",
-    "Cascadia Code",
-    "Consolas",
-    "JetBrains Mono",
-    "Lucida Console",
-    "Courier New",
-)
-
-
-def _first_available_font_family() -> str:
-    try:
-        families = set(tkfont.families())
-    except Exception:
-        return "Consolas"
-    for name in _FONT_CANDIDATES:
-        if name in families:
-            return name
-    return "Consolas"
+DEFAULT_FONT_FAMILY = "Noto Sans"
+DEFAULT_FONT_SIZE = 11
+HEADING_FONT_SIZE = 12
 
 
 PALETTES: Dict[str, Dict[str, str]] = {
@@ -91,15 +75,41 @@ PALETTES: Dict[str, Dict[str, str]] = {
 }
 
 
-def build_context(mode: str, font_pt: int) -> Dict[str, Any]:
+def configure_default_fonts(root: tk.Misc) -> None:
+    try:
+        available_families = set(tkfont.families(root))
+    except tk.TclError:
+        return
+
+    font_sizes = {
+        "TkDefaultFont": DEFAULT_FONT_SIZE,
+        "TkMenuFont": DEFAULT_FONT_SIZE,
+        "TkTextFont": DEFAULT_FONT_SIZE,
+        "TkHeadingFont": HEADING_FONT_SIZE,
+        "TkCaptionFont": DEFAULT_FONT_SIZE,
+        "TkSmallCaptionFont": 10,
+        "TkIconFont": DEFAULT_FONT_SIZE,
+        "TkTooltipFont": 10,
+    }
+    for font_name, size in font_sizes.items():
+        try:
+            named_font = tkfont.nametofont(font_name)
+            options = {"size": size}
+            if DEFAULT_FONT_FAMILY in available_families:
+                options["family"] = DEFAULT_FONT_FAMILY
+            if font_name == "TkHeadingFont":
+                options["weight"] = "bold"
+            named_font.configure(**options)
+        except tk.TclError:
+            pass
+
+
+def build_context(mode: str) -> Dict[str, Any]:
     mode = "dark" if mode not in PALETTES else mode
     p = PALETTES[mode]
-    pt = max(8, min(24, int(font_pt)))
     return {
         "mode": mode,
         "palette": p,
-        "font_family": _first_available_font_family(),
-        "font_pt": pt,
         "editor_bg": p["editor_bg"],
         "editor_fg": p["editor_fg"],
         "editor_insert": p["editor_insert"],
@@ -121,7 +131,6 @@ def apply_editor_style(widget: tk.Widget, ctx: Dict[str, Any]) -> None:
             insertbackground=ctx["editor_insert"],
             selectbackground=ctx["editor_select_bg"],
             selectforeground=ctx["editor_select_fg"],
-            font=(ctx["font_family"], ctx["font_pt"]),
         )
     except tk.TclError:
         pass
@@ -140,15 +149,15 @@ def configure_ttk_style(style: ttk.Style, mode: str) -> Dict[str, str]:
     style.configure(".", background=bg, foreground=fg, fieldbackground=p["entry_bg"])
     style.configure("TFrame", background=bg)
     style.configure("TPanedwindow", background=bg)
-    style.configure("TLabel", background=bg, foreground=fg, font=("Segoe UI", 10))
-    style.configure("TButton", background=p["button_bg"], foreground=p["button_fg"], font=("Segoe UI", 10), padding=(10, 6))
+    style.configure("TLabel", background=bg, foreground=fg)
+    style.configure("TButton", background=p["button_bg"], foreground=p["button_fg"], padding=(10, 6))
     style.map(
         "TButton",
         background=[("active", p["border"]), ("pressed", p["border"])],
         foreground=[("disabled", p["fg_muted"])],
     )
-    style.configure("TCheckbutton", background=bg, foreground=fg, font=("Segoe UI", 10))
-    style.configure("TRadiobutton", background=bg, foreground=fg, font=("Segoe UI", 10))
+    style.configure("TCheckbutton", background=bg, foreground=fg)
+    style.configure("TRadiobutton", background=bg, foreground=fg)
     style.configure("TEntry", fieldbackground=p["entry_bg"], foreground=p["entry_fg"], insertcolor=p["entry_insert"], padding=4)
     style.configure("TCombobox", fieldbackground=p["entry_bg"], foreground=p["entry_fg"], padding=4)
     style.map("TCombobox",
@@ -168,7 +177,6 @@ def configure_ttk_style(style: ttk.Style, mode: str) -> Dict[str, str]:
         background=p["tab_unselected"],
         foreground=fg,
         padding=[14, 8],
-        font=("Segoe UI", 10),
     )
     style.map(
         "TNotebook.Tab",
@@ -178,21 +186,21 @@ def configure_ttk_style(style: ttk.Style, mode: str) -> Dict[str, str]:
     )
 
     style.configure("TLabelframe", background=bg, foreground=fg, bordercolor=p["border"])
-    style.configure("TLabelframe.Label", background=bg, foreground=p["accent"], font=("Segoe UI", 10, "bold"))
+    style.configure("TLabelframe.Label", background=bg, foreground=p["accent"])
 
-    style.configure("Treeview", background=p["tree_bg"], foreground=p["tree_fg"], fieldbackground=p["tree_bg"], rowheight=26, font=("Segoe UI", 10))
-    style.configure("Treeview.Heading", background=p["tab_unselected"], foreground=fg, font=("Segoe UI", 10, "bold"))
+    style.configure("Treeview", background=p["tree_bg"], foreground=p["tree_fg"], fieldbackground=p["tree_bg"], rowheight=26)
+    style.configure("Treeview.Heading", background=p["tab_unselected"], foreground=fg)
     style.map(
         "Treeview",
         background=[("selected", p["tree_sel_bg"])],
         foreground=[("selected", p["tree_sel_fg"])],
     )
 
-    style.configure("TMenubutton", background=p["button_bg"], foreground=p["button_fg"], font=("Segoe UI", 9), padding=(8, 4))
-    style.configure("Sidebar.TButton", font=("Segoe UI", 10), padding=10, width=22, background=p["button_bg"], foreground=p["button_fg"])
+    style.configure("TMenubutton", background=p["button_bg"], foreground=p["button_fg"], padding=(8, 4))
+    style.configure("Sidebar.TButton", padding=10, width=22, background=p["button_bg"], foreground=p["button_fg"])
     style.map("Sidebar.TButton", background=[("active", p["border"])])
 
-    style.configure("SidebarHeader.TLabel", background=p["bg_sidebar_header"], foreground=p["fg_sidebar_header"], font=("Segoe UI", 14, "bold"))
+    style.configure("SidebarHeader.TLabel", background=p["bg_sidebar_header"], foreground=p["fg_sidebar_header"])
     return p
 
 

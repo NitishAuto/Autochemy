@@ -64,7 +64,7 @@ class XTBModule(BaseModule):
 
         top = ttk.Frame(self.main_frame)
         top.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(top, text="xTB (GFN)", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT)
+        ttk.Label(top, text="xTB (GFN)").pack(side=tk.LEFT)
         ttk.Button(top, text="ℹ Cite xTB", command=self._show_citation).pack(side=tk.RIGHT, padx=(4, 0))
         ttk.Button(
             top,
@@ -97,7 +97,7 @@ class XTBModule(BaseModule):
         ttk.Button(geo_btns, text="Load XYZ…", command=self._load_xyz).pack(side=tk.LEFT, padx=(0, 4))
         ttk.Button(geo_btns, text="Save XYZ…", command=self._save_xyz).pack(side=tk.LEFT)
 
-        self.geom_txt = tk.Text(gf, height=14, wrap=tk.NONE, font=("Consolas", 10))
+        self.geom_txt = tk.Text(gf, height=14, wrap=tk.NONE)
         gy = ttk.Scrollbar(gf, orient=tk.VERTICAL, command=self.geom_txt.yview)
         gx = ttk.Scrollbar(gf, orient=tk.HORIZONTAL, command=self.geom_txt.xview)
         self.geom_txt.configure(yscrollcommand=gy.set, xscrollcommand=gx.set)
@@ -122,11 +122,11 @@ class XTBModule(BaseModule):
         self.xtb_version_choice = tk.StringVar(value=xtb_support.default_xtb_version_label())
         self.xtb_opt_level = tk.StringVar(value="normal")
         
-        self.xtb_settings_summary = ttk.Label(jf, text="", font=("Segoe UI", 9))
+        self.xtb_settings_summary = ttk.Label(jf, text="")
         self.xtb_settings_summary.grid(row=1, column=0, columnspan=2, sticky="w", padx=4, pady=2)
         ttk.Button(jf, text="⚙ xTB Settings", command=self._open_xtb_settings).grid(row=2, column=0, columnspan=2, sticky="w", padx=4, pady=2)
 
-        self.job_hint = ttk.Label(jf, text="", font=("Segoe UI", 9, "italic"))
+        self.job_hint = ttk.Label(jf, text="")
         self.job_hint.grid(row=3, column=0, columnspan=2, sticky="w", padx=4, pady=4)
         jf.columnconfigure(1, weight=1)
 
@@ -219,13 +219,13 @@ class XTBModule(BaseModule):
 
         log_top_frame = ttk.Frame(xtb_log_wrap)
         log_top_frame.pack(fill=tk.X)
-        ttk.Label(log_top_frame, text="Live Log Stream:", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT)
+        ttk.Label(log_top_frame, text="Live Log Stream:").pack(side=tk.LEFT)
         self.btn_full_log = ttk.Button(log_top_frame, text="Open Full Log", command=self._open_full_log, state=tk.DISABLED)
         self.btn_full_log.pack(side=tk.LEFT, padx=10)
 
         log_txt_frame = ttk.Frame(xtb_log_wrap)
         log_txt_frame.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
-        self.log_txt = tk.Text(log_txt_frame, height=10, width=40, font=("Consolas", 9), bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
+        self.log_txt = tk.Text(log_txt_frame, height=10, width=40,  bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
         ly = ttk.Scrollbar(log_txt_frame, orient="vertical", command=self.log_txt.yview)
         lx = ttk.Scrollbar(log_txt_frame, orient="horizontal", command=self.log_txt.xview)
         self.log_txt.configure(yscrollcommand=ly.set, xscrollcommand=lx.set)
@@ -238,7 +238,7 @@ class XTBModule(BaseModule):
         xtb_left_notebook.add(num_f, text="Numbers")
         xtb_left_notebook.add(geom_out_f, text="xTB Output Geometry")
 
-        self.num_txt = tk.Text(num_f, height=10, width=40, font=("Consolas", 9), wrap=tk.NONE)
+        self.num_txt = tk.Text(num_f, height=10, width=40,  wrap=tk.NONE)
         ny = ttk.Scrollbar(num_f, orient="vertical", command=self.num_txt.yview)
         nx = ttk.Scrollbar(num_f, orient="horizontal", command=self.num_txt.xview)
         self.num_txt.configure(yscrollcommand=ny.set, xscrollcommand=nx.set)
@@ -248,7 +248,7 @@ class XTBModule(BaseModule):
         self.num_txt.insert("1.0", "Important values will appear here after xTB run...")
         self.num_txt.config(state=tk.DISABLED)
 
-        self.geom_out_txt = tk.Text(geom_out_f, height=10, width=40, font=("Consolas", 10), wrap=tk.NONE)
+        self.geom_out_txt = tk.Text(geom_out_f, height=10, width=40,  wrap=tk.NONE)
         gy = ttk.Scrollbar(geom_out_f, orient="vertical", command=self.geom_out_txt.yview)
         gx = ttk.Scrollbar(geom_out_f, orient="horizontal", command=self.geom_out_txt.xview)
         self.geom_out_txt.configure(yscrollcommand=gy.set, xscrollcommand=gx.set)
@@ -262,7 +262,7 @@ class XTBModule(BaseModule):
         scan_f = ttk.Frame(xtb_right_vert)
         xtb_right_vert.add(scan_f, weight=1)
 
-        self.scan_plot_title = ttk.Label(scan_f, text="Graphs will appear here.", font=("Segoe UI", 9, "italic"))
+        self.scan_plot_title = ttk.Label(scan_f, text="Graphs will appear here.")
         self.scan_plot_title.pack(anchor="w", pady=(2, 2))
         self.scan_plot_host = ttk.Frame(scan_f)
         self.scan_plot_host.pack(fill=tk.BOTH, expand=True)
@@ -282,7 +282,7 @@ class XTBModule(BaseModule):
         self.folder_var = tk.StringVar(
             value="Last run folder: (none yet — xTB runs use external_modules/xtb/xtb_runs/, CREST runs use external_modules/xtb/crest_runs/)"
         )
-        ttk.Label(right, textvariable=self.folder_var, font=("Consolas", 8), wraplength=560, justify=tk.LEFT).pack(
+        ttk.Label(right, textvariable=self.folder_var,  wraplength=560, justify=tk.LEFT).pack(
             fill=tk.X, pady=(8, 0), anchor="w"
         )
 
@@ -457,7 +457,7 @@ class XTBModule(BaseModule):
         version_cb.set(current_version)
         version_cb.grid(row=0, column=1, sticky="w", pady=4)
         path_var = tk.StringVar(value=xtb_support.bundled_xtb_versions().get(version_cb.get(), ""))
-        ttk.Label(body, textvariable=path_var, font=("Segoe UI", 8), wraplength=280).grid(
+        ttk.Label(body, textvariable=path_var,  wraplength=280).grid(
             row=1, column=1, sticky="w", pady=(0, 4)
         )
 
@@ -1188,7 +1188,7 @@ class XTBModule(BaseModule):
         win = tk.Toplevel(self._root)
         win.title("xTB — citations")
         win.geometry("560x300")
-        ttk.Label(win, text="xTB (S. Grimme et al.)", font=("Segoe UI", 12, "bold")).pack(pady=12)
+        ttk.Label(win, text="xTB (S. Grimme et al.)").pack(pady=12)
         for label, url in papers.items():
             row = ttk.Frame(win)
             row.pack(fill=tk.X, padx=16, pady=4)
@@ -1295,7 +1295,7 @@ class XTBModule(BaseModule):
         title = "CREST full log" if self._last_run_engine == "crest" else "xTB full log"
         win.title(title)
         win.geometry("900x650")
-        txt = tk.Text(win, font=("Consolas", 10), wrap=tk.NONE)
+        txt = tk.Text(win,  wrap=tk.NONE)
         sy = ttk.Scrollbar(win, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(win, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)

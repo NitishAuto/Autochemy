@@ -32,7 +32,7 @@ class StructureGeneratorModule(BaseModule):
         # Title
         title_frame = ttk.Frame(self.main_frame)
         title_frame.pack(fill=tk.X, pady=(0, 12))
-        ttk.Label(title_frame, text="Structure Generator", font=("Segoe UI", 18, "bold")).pack(side=tk.LEFT)
+        ttk.Label(title_frame, text="Structure Generator").pack(side=tk.LEFT)
 
         # File input section
         input_frame = ttk.LabelFrame(self.main_frame, text="Load Structure File", padding=10)
@@ -52,7 +52,7 @@ class StructureGeneratorModule(BaseModule):
 
         # Supported formats info
         formats_text = "Supported formats: CIF, POSCAR, CONTCAR, XYZ, JSON, and more (via pymatgen/ASE)"
-        ttk.Label(input_frame, text=formats_text, font=("Segoe UI", 9), foreground="#666666").pack(fill=tk.X)
+        ttk.Label(input_frame, text=formats_text,  foreground="#666666").pack(fill=tk.X)
 
         # Load button
         load_btn_frame = ttk.Frame(input_frame)

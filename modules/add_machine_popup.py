@@ -226,7 +226,7 @@ class AddMachinePopup(tk.Toplevel):
         ttk.Entry(self.interactive_btn_frame, textvariable=self.custom_var_name, width=10).pack(side=tk.LEFT, padx=2)
         ttk.Button(self.interactive_btn_frame, text="Replace", command=self._replace_custom_var).pack(side=tk.LEFT, padx=2)
         
-        self.txt_script = tk.Text(right_frame, font=("Consolas", 10), wrap="word")
+        self.txt_script = tk.Text(right_frame,  wrap="word")
         self.txt_script.pack(fill=tk.BOTH, expand=True)
         
         self.static_save_btn = ttk.Button(right_frame, text="Save Script for Queue", command=self._save_script_for_queue)

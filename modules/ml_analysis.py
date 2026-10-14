@@ -78,12 +78,12 @@ class MLAnalysisModule(BaseModule):
         style = ttk.Style()
         style.theme_use("clam")
 
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"))
+        style.configure("Title.TLabel")
 
         # ===== HEADER =====
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}", font=("Segoe UI", 13, "bold"), foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # ===== FILE INPUT =====

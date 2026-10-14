@@ -316,7 +316,7 @@ class AutoChemyViewer:
                 outline = "#9ca3af" if sym == "H" else fill
                 self.canvas.create_oval(sx - r, sy - r, sx + r, sy + r, fill=fill, outline=outline, width=1)
 
-        self.canvas.create_text(8, 8, anchor="nw", fill=self.hint, font=("Segoe UI", 9), text="Right drag: rotate, wheel: zoom, left click: select")
+        self.canvas.create_text(8, 8, anchor="nw", fill=self.hint,  text="Right drag: rotate, wheel: zoom, left click: select")
 
         if getattr(self, "show_labels", False) or getattr(self, "show_numbers", False):
             for _z, i in depth:
@@ -327,22 +327,21 @@ class AutoChemyViewer:
                 if self.show_numbers:
                     text += str(i + 1)
                 
-                font = ("Segoe UI", 10, "bold")
                 outline_color = "#ffffff" if not self.is_dark else "#0b1220"
                 text_color = "#000000" if not self.is_dark else "#ffffff"
                 
-                self.canvas.create_text(sx-1, sy-1, text=text, fill=outline_color, font=font)
-                self.canvas.create_text(sx+1, sy-1, text=text, fill=outline_color, font=font)
-                self.canvas.create_text(sx-1, sy+1, text=text, fill=outline_color, font=font)
-                self.canvas.create_text(sx+1, sy+1, text=text, fill=outline_color, font=font)
-                self.canvas.create_text(sx, sy, text=text, fill=text_color, font=font)
+                self.canvas.create_text(sx-1, sy-1, text=text, fill=outline_color)
+                self.canvas.create_text(sx+1, sy-1, text=text, fill=outline_color)
+                self.canvas.create_text(sx-1, sy+1, text=text, fill=outline_color)
+                self.canvas.create_text(sx+1, sy+1, text=text, fill=outline_color)
+                self.canvas.create_text(sx, sy, text=text, fill=text_color)
 
         if len(self.selected_order) == 2:
             i, j = self.selected_order
             x1, y1, z1 = self.coords[i]
             x2, y2, z2 = self.coords[j]
             dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**0.5
-            self.canvas.create_text(8, 28, anchor="nw", fill=self.hint, font=("Segoe UI", 12, "bold"), text=f"Distance: {dist:.3f} Å")
+            self.canvas.create_text(8, 28, anchor="nw", fill=self.hint,  text=f"Distance: {dist:.3f} Å")
         elif len(self.selected_order) == 3:
             import math
             i, j, k = self.selected_order
@@ -357,7 +356,7 @@ class AutoChemyViewer:
                 dot_val = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
                 dot_val = max(-1.0, min(1.0, dot_val / (L1 * L2)))
                 angle = math.degrees(math.acos(dot_val))
-                self.canvas.create_text(8, 28, anchor="nw", fill=self.hint, font=("Segoe UI", 12, "bold"), text=f"Angle: {angle:.2f}°")
+                self.canvas.create_text(8, 28, anchor="nw", fill=self.hint,  text=f"Angle: {angle:.2f}°")
         elif len(self.selected_order) == 4:
             import math
             i, j, k, l = self.selected_order
@@ -383,4 +382,4 @@ class AutoChemyViewer:
                 x = dot(n1, n2)
                 y = dot(m1, n2)
                 dih = math.degrees(math.atan2(y, x))
-                self.canvas.create_text(8, 28, anchor="nw", fill=self.hint, font=("Segoe UI", 12, "bold"), text=f"Dihedral: {dih:.2f}°")
+                self.canvas.create_text(8, 28, anchor="nw", fill=self.hint,  text=f"Dihedral: {dih:.2f}°")

@@ -53,7 +53,7 @@ class ConformationalSamplingModule(BaseModule):
 
         header = ttk.Frame(self.main_frame)
         header.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(header, text="Conformational Sampling", font=("Segoe UI", 14, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header, text="Conformational Sampling").pack(side=tk.LEFT)
         self.back_btn = ttk.Button(header, text="← Back to options", command=self._show_home)
         self.back_btn.pack(side=tk.RIGHT)
 
@@ -74,12 +74,12 @@ class ConformationalSamplingModule(BaseModule):
         ttk.Label(
             hero,
             text="Open a conformational sampling workflow.",
-            font=("Segoe UI", 11, "bold"),
+            
         ).pack(anchor="w", pady=(0, 6))
         ttk.Label(
             hero,
             text="Pick CREST for conformer/rotamer sampling.",
-            font=("Segoe UI", 10),
+            
         ).pack(anchor="w", pady=(0, 18))
 
         cards = ttk.Frame(hero)
@@ -99,7 +99,7 @@ class ConformationalSamplingModule(BaseModule):
     def _build_crest_view(self) -> None:
         top = ttk.Frame(self.crest_frame)
         top.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(top, text="CREST Conformational Sampling", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT)
+        ttk.Label(top, text="CREST Conformational Sampling").pack(side=tk.LEFT)
 
         outer = ttk.PanedWindow(self.crest_frame, orient=tk.HORIZONTAL)
         outer.pack(fill=tk.BOTH, expand=True)
@@ -140,7 +140,7 @@ class ConformationalSamplingModule(BaseModule):
         cm = ttk.Frame(gf)
         cm.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 4))
         self.loaded_file_var = tk.StringVar(value="No structure loaded")
-        ttk.Label(cm, textvariable=self.loaded_file_var, font=("Segoe UI", 9)).pack(side=tk.LEFT, padx=(0, 12))
+        ttk.Label(cm, textvariable=self.loaded_file_var).pack(side=tk.LEFT, padx=(0, 12))
         ttk.Button(cm, text="Load structure...", command=self._load_structure_file).pack(side=tk.LEFT)
 
         cm2 = ttk.Frame(gf)
@@ -157,7 +157,7 @@ class ConformationalSamplingModule(BaseModule):
         ttk.Button(geo_btns, text="Load XYZ...", command=self._load_xyz).pack(side=tk.LEFT, padx=(0, 4))
         ttk.Button(geo_btns, text="Save XYZ...", command=self._save_xyz).pack(side=tk.LEFT)
 
-        self.geom_txt = tk.Text(gf, height=14, wrap=tk.NONE, font=("Consolas", 10))
+        self.geom_txt = tk.Text(gf, height=14, wrap=tk.NONE)
         gy = ttk.Scrollbar(gf, orient=tk.VERTICAL, command=self.geom_txt.yview)
         gx = ttk.Scrollbar(gf, orient=tk.HORIZONTAL, command=self.geom_txt.xview)
         self.geom_txt.configure(yscrollcommand=gy.set, xscrollcommand=gx.set)
@@ -256,7 +256,7 @@ class ConformationalSamplingModule(BaseModule):
         ttk.Entry(cf, textvariable=self.crest_extra_args, width=42).grid(
             row=5, column=0, columnspan=4, sticky="ew", padx=4, pady=2
         )
-        self.crest_settings_summary = ttk.Label(cf, text="", font=("Segoe UI", 9))
+        self.crest_settings_summary = ttk.Label(cf, text="")
         self.crest_settings_summary.grid(row=6, column=0, columnspan=4, sticky="w", padx=4, pady=(4, 2))
         for idx in range(4):
             cf.columnconfigure(idx, weight=1 if idx in (1, 3) else 0)
@@ -321,13 +321,13 @@ class ConformationalSamplingModule(BaseModule):
             ttk.Label(
                 wsl_f,
                 text="ℹ Windows Note: CREST requires a Linux environment. You can install WSL (Windows Subsystem for Linux)\nby running 'wsl --install' in PowerShell, then compile or run CREST binaries within WSL.",
-                font=("Segoe UI", 8, "italic"),
+                
                 foreground="#0284c7"
             ).pack(anchor="w")
 
         preview_f = ttk.LabelFrame(left, text="CREST Command Preview")
         preview_f.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
-        self.cmd_preview_txt = tk.Text(preview_f, height=3, font=("Consolas", 9), wrap=tk.WORD, bg="#f0f0f0")
+        self.cmd_preview_txt = tk.Text(preview_f, height=3,  wrap=tk.WORD, bg="#f0f0f0")
         self.cmd_preview_txt.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
         
         _update_crest_preview()
@@ -349,8 +349,8 @@ class ConformationalSamplingModule(BaseModule):
         ).pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(runf, text="Open XYZ file...", command=self._open_xyz_external).pack(side=tk.LEFT)
 
-        ttk.Label(right, text="Live Log Stream:", font=("Segoe UI", 9, "bold")).pack(anchor="w")
-        self.log_txt = tk.Text(right, height=11, font=("Consolas", 9), bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
+        ttk.Label(right, text="Live Log Stream:").pack(anchor="w")
+        self.log_txt = tk.Text(right, height=11,  bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
         ly = ttk.Scrollbar(right, orient=tk.VERTICAL, command=self.log_txt.yview)
         self.log_txt.configure(yscrollcommand=ly.set)
         self.log_txt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -374,7 +374,7 @@ class ConformationalSamplingModule(BaseModule):
         ttk.Label(
             post_box,
             text="Deduplicate pool → crest_ensemble.xyz:",
-            font=("Segoe UI", 9, "bold"),
+            
         ).pack(anchor="w", pady=(0, 2))
         dedupe_row = ttk.Frame(post_box)
         dedupe_row.pack(fill=tk.X, pady=(0, 4))
@@ -391,7 +391,7 @@ class ConformationalSamplingModule(BaseModule):
                 "cregen = runs CREST as crest ref.xyz --cregen crest_rotamers.xyz (ref = crest_best.xyz, "
                 "input.xyz, or first rotamer frame); python = Kabsch RMSD (0.125 Å) + ΔE window, no crest; none = skip."
             ),
-            font=("Segoe UI", 8),
+            
             wraplength=520,
             justify=tk.LEFT,
         ).pack(anchor="w", pady=(0, 2))
@@ -436,7 +436,7 @@ class ConformationalSamplingModule(BaseModule):
         self.orca_template_status = ttk.Label(
             orca_box,
             text="ORCA .inp mode: simple line from Method / Basis / Job above (or import a full template from Input Creator).",
-            font=("Segoe UI", 8),
+            
             wraplength=520,
             justify=tk.LEFT,
         )
@@ -444,14 +444,14 @@ class ConformationalSamplingModule(BaseModule):
 
         num_box = ttk.LabelFrame(left_bottom, text="Summary", padding=(6, 6))
         num_box.pack(fill=tk.BOTH, expand=True, pady=(0, 6))
-        self.num_txt = tk.Text(num_box, height=10, font=("Consolas", 9), wrap=tk.NONE)
+        self.num_txt = tk.Text(num_box, height=10,  wrap=tk.NONE)
         self.num_txt.pack(fill=tk.BOTH, expand=True)
         self.num_txt.insert("1.0", "CREST summary will appear here after a run.\n")
         self.num_txt.config(state=tk.DISABLED)
 
         out_box = ttk.LabelFrame(right_bottom, text="Output Geometry / Ensemble Preview", padding=(6, 6))
         out_box.pack(fill=tk.BOTH, expand=True, pady=(0, 6))
-        self.geom_out_txt = tk.Text(out_box, height=8, font=("Consolas", 10), wrap=tk.NONE)
+        self.geom_out_txt = tk.Text(out_box, height=8,  wrap=tk.NONE)
         self.geom_out_txt.pack(fill=tk.BOTH, expand=True)
 
         plot_box = ttk.LabelFrame(right_bottom, text="CREST relative energies", padding=(6, 6))
@@ -459,7 +459,7 @@ class ConformationalSamplingModule(BaseModule):
         self.crest_plot_title = ttk.Label(
             plot_box,
             text="After CREST: sorted energies, E_min (Eh), Boltzmann % @ 298 K, and rank vs CREST file index.",
-            font=("Segoe UI", 9, "italic"),
+            
         )
         self.crest_plot_title.pack(anchor="w", pady=(0, 4))
         self.crest_plot_host = ttk.Frame(plot_box)
@@ -474,7 +474,7 @@ class ConformationalSamplingModule(BaseModule):
         ttk.Button(bf, text="Output folder", command=self._open_output_folder).pack(side=tk.LEFT)
 
         self.folder_var = tk.StringVar(value="Last run folder: (none yet - runs use project-local crest_runs/)")
-        ttk.Label(self.crest_frame, textvariable=self.folder_var, font=("Consolas", 8), wraplength=900, justify=tk.LEFT).pack(
+        ttk.Label(self.crest_frame, textvariable=self.folder_var,  wraplength=900, justify=tk.LEFT).pack(
             fill=tk.X, pady=(8, 0), anchor="w"
         )
 
@@ -1603,7 +1603,7 @@ class ConformationalSamplingModule(BaseModule):
         win = tk.Toplevel(self._root)
         win.title("CREST full log")
         win.geometry("900x650")
-        txt = tk.Text(win, font=("Consolas", 10), wrap=tk.NONE)
+        txt = tk.Text(win,  wrap=tk.NONE)
         sy = ttk.Scrollbar(win, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(win, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)

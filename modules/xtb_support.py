@@ -1232,14 +1232,14 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
             w // 2,
             14,
             text=f"CREST energies (sorted) — N={n}  |  E(lowest)={e_min:.6f} Eh  |  span={span_kcal:.2f} kcal/mol",
-            font=("Segoe UI", 9),
+            
             fill="#0f172a",
         )
         cv.create_text(
             w // 2,
             30,
             text="Tk canvas — install matplotlib for table + color scale",
-            font=("Segoe UI", 8),
+            
             fill="#64748b",
         )
         row_h = min(22, max(10, plot_h // max(n, 1)))
@@ -1247,13 +1247,13 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
             y0 = pad_t + i * row_h
             if y0 + row_h > pad_t + plot_h:
                 break
-            cv.create_text(pad_l - 6, y0 + row_h // 2, text=f"#{i+1} #{crest_id}", anchor="e", font=("Consolas", 8), fill="#334155")
+            cv.create_text(pad_l - 6, y0 + row_h // 2, text=f"#{i+1} #{crest_id}", anchor="e",  fill="#334155")
             bw = (de / max_e) * plot_w
             cv.create_rectangle(pad_l, y0 + 2, pad_l + bw, y0 + row_h - 2, fill="#7c3aed", outline="#4c1d95", width=1)
-            cv.create_text(pad_l + bw + 6, y0 + row_h // 2, text=f"{de:.2f}", anchor="w", font=("Consolas", 8), fill="#0f172a")
-        cv.create_text(pad_l + plot_w // 2, h - 22, text="ΔE (kcal/mol) vs lowest", font=("Segoe UI", 8), fill="#475569")
+            cv.create_text(pad_l + bw + 6, y0 + row_h // 2, text=f"{de:.2f}", anchor="w",  fill="#0f172a")
+        cv.create_text(pad_l + plot_w // 2, h - 22, text="ΔE (kcal/mol) vs lowest",  fill="#475569")
         top3 = ", ".join(f"#{pairs[j][0]}:{pcts[j]:.1f}%" for j in range(min(3, n)))
-        cv.create_text(pad_l, h - 6, text=f"Boltzmann @298K (top 3): {top3}", anchor="w", font=("Segoe UI", 8), fill="#475569")
+        cv.create_text(pad_l, h - 6, text=f"Boltzmann @298K (top 3): {top3}", anchor="w",  fill="#475569")
         master.update_idletasks()
         return ""
     except Exception as exc:

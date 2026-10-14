@@ -81,11 +81,11 @@ class PeriodicPlaceholderModule(BaseModule):
         self.main_frame = ttk.Frame(self.parent_frame)
         card = ttk.Frame(self.main_frame)
         card.pack(expand=True)
-        ttk.Label(card, text="Periodic", font=("Segoe UI", 22, "bold")).pack(pady=(24, 8))
+        ttk.Label(card, text="Periodic").pack(pady=(24, 8))
         ttk.Label(
             card,
             text="Periodic tools will be added here later.",
-            font=("Segoe UI", 12),
+            
         ).pack(pady=(0, 24))
 
 
@@ -102,11 +102,11 @@ class JobManagerPlaceholderModule(BaseModule):
         self.main_frame = ttk.Frame(self.parent_frame)
         card = ttk.Frame(self.main_frame)
         card.pack(expand=True)
-        ttk.Label(card, text="Job Manager", font=("Segoe UI", 22, "bold")).pack(pady=(24, 8))
+        ttk.Label(card, text="Job Manager").pack(pady=(24, 8))
         ttk.Label(
             card,
             text="Job management tools will be added here later.",
-            font=("Segoe UI", 12),
+            
         ).pack(pady=(0, 24))
 
 
@@ -137,8 +137,8 @@ class ORCASoftwareSuite:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.theme_mode = "light"
-        self.editor_font_pt = 12
         self.beginner_mode = True
+        app_theme.configure_default_fonts(self.root)
         self.style = ttk.Style()
         self._dark_mode_var = None
         self._beginner_mode_var = None
@@ -167,11 +167,6 @@ class ORCASoftwareSuite:
         self._broadcast_theme()
         self._schedule_session_autosave()
 
-        self.root.bind_all("<Control-plus>", lambda e: self._font_delta(1))
-        self.root.bind_all("<Control-equal>", lambda e: self._font_delta(1))
-        self.root.bind_all("<Control-minus>", lambda e: self._font_delta(-1))
-        self.root.bind_all("<Control-0>", lambda e: self._font_reset())
-
     def _configure_style(self):
         p = app_theme.configure_ttk_style(self.style, self.theme_mode)
         self._palette = p
@@ -184,7 +179,7 @@ class ORCASoftwareSuite:
         top_inner.pack(fill=tk.X, expand=True)
         ttk.Frame(top_inner).pack(side=tk.LEFT, expand=True)
         self._beginner_mode_var = tk.BooleanVar(value=self.beginner_mode)
-        ttk.Label(top_inner, text="Beginner", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(0, 4))
+        ttk.Label(top_inner, text="Beginner").pack(side=tk.RIGHT, padx=(0, 4))
         self._beginner_mode_switch = ModernSwitch(
             top_inner,
             bg_off="#0b5cab",
@@ -193,9 +188,9 @@ class ORCASoftwareSuite:
             command=self._on_beginner_mode_toggle,
         )
         self._beginner_mode_switch.pack(side=tk.RIGHT, padx=(0, 12))
-        ttk.Label(top_inner, text="Experienced", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(4, 0))
+        ttk.Label(top_inner, text="Experienced").pack(side=tk.RIGHT, padx=(4, 0))
         self._dark_mode_var = tk.BooleanVar(value=(self.theme_mode == "dark"))
-        ttk.Label(top_inner, text="Dark", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(0, 4))
+        ttk.Label(top_inner, text="Dark").pack(side=tk.RIGHT, padx=(0, 4))
         self._dark_mode_switch = ModernSwitch(
             top_inner,
             bg_off="#cbd5e1",
@@ -204,7 +199,7 @@ class ORCASoftwareSuite:
             command=self._on_dark_mode_toggle,
         )
         self._dark_mode_switch.pack(side=tk.RIGHT, padx=(0, 12))
-        ttk.Label(top_inner, text="Light", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(4, 0))
+        ttk.Label(top_inner, text="Light").pack(side=tk.RIGHT, padx=(4, 0))
         ttk.Separator(self.root, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=8, pady=(0, 4))
 
         main_container = ttk.Frame(self.root)
@@ -254,7 +249,7 @@ class ORCASoftwareSuite:
             width=10,
         )
         self._sidebar_back_button.pack(side=tk.LEFT)
-        self._sidebar_group_title = ttk.Label(self._sidebar_group_header, text="", font=("Segoe UI", 11, "bold"))
+        self._sidebar_group_title = ttk.Label(self._sidebar_group_header, text="")
         self._sidebar_group_title.pack(side=tk.LEFT, padx=(8, 0))
 
         self._sidebar_group_body = ttk.Frame(self._sidebar_group_frame)
@@ -287,10 +282,6 @@ class ORCASoftwareSuite:
         menubar.add_cascade(label="View", menu=self._view_menu)
         self._view_menu.add_command(label="Dark theme", command=lambda: self._set_theme("dark"))
         self._view_menu.add_command(label="Light theme", command=lambda: self._set_theme("light"))
-        self._view_menu.add_separator()
-        self._view_menu.add_command(label="Larger editor text  (+)", command=lambda: self._font_delta(1))
-        self._view_menu.add_command(label="Smaller editor text (−)", command=lambda: self._font_delta(-1))
-        self._view_menu.add_command(label="Reset editor text size", command=self._font_reset)
 
         self._modules_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Modules", menu=self._modules_menu)
@@ -452,19 +443,11 @@ class ORCASoftwareSuite:
         self._sync_dark_mode_toggle()
         self._broadcast_theme()
 
-    def _font_delta(self, delta: int):
-        self.editor_font_pt = max(8, min(24, self.editor_font_pt + delta))
-        self._broadcast_theme()
-
-    def _font_reset(self):
-        self.editor_font_pt = 12
-        self._broadcast_theme()
-
     def _manage_paths(self):
         SoftwarePathDialog(self.root)
 
     def _broadcast_theme(self):
-        ctx = app_theme.build_context(self.theme_mode, self.editor_font_pt)
+        ctx = app_theme.build_context(self.theme_mode)
         ctx["beginner_mode"] = self.beginner_mode
         self._draw_sidebar_header()
         for mod in self.modules.values():
@@ -482,8 +465,7 @@ class ORCASoftwareSuite:
             self.sidebar_header.configure(bg=bg_col)
             fg_col = "#000000"
             
-            font = ("Segoe UI", 16, "bold")
-            base_id = self.sidebar_header.create_text(0, 18, text=self.header_text_base, font=font, fill=fg_col, anchor="w")
+            base_id = self.sidebar_header.create_text(0, 18, text=self.header_text_base,  fill=fg_col, anchor="w")
             x_offset = self.sidebar_header.bbox(base_id)[2]
             
             # The image colors for C, h, e, m, y
@@ -492,7 +474,7 @@ class ORCASoftwareSuite:
             ids = [base_id]
             
             for ch, col in zip(chars, colors):
-                tid = self.sidebar_header.create_text(x_offset, 18, text=ch, font=font, fill=col, anchor="w")
+                tid = self.sidebar_header.create_text(x_offset, 18, text=ch,  fill=col, anchor="w")
                 x_offset = self.sidebar_header.bbox(tid)[2]
                 ids.append(tid)
                 
@@ -668,10 +650,6 @@ class ORCASoftwareSuite:
         if isinstance(modules_state, dict):
             self._pending_module_sessions = dict(modules_state)
 
-        font_pt = app_state.get("editor_font_pt")
-        if isinstance(font_pt, int):
-            self.editor_font_pt = max(8, min(24, font_pt))
-
         beginner_mode = app_state.get("beginner_mode")
         if isinstance(beginner_mode, bool):
             self.beginner_mode = beginner_mode
@@ -802,7 +780,6 @@ class ORCASoftwareSuite:
             "version": self.SESSION_VERSION,
             "app": {
                 "theme_mode": self.theme_mode,
-                "editor_font_pt": self.editor_font_pt,
                 "beginner_mode": self.beginner_mode,
                 "current_module": self._current_module_name,
                 "window_geometry": self.root.geometry(),
@@ -1195,7 +1172,7 @@ class SplashScreen(tk.Toplevel):
             if len(self.frames) > 1:
                 self.after_idle(self._animate_gif)
         else:
-            self.label.config(text="AUTOCHEMY", font=("Segoe UI", 56, "bold"), fg="#1f2937")
+            self.label.config(text="AUTOCHEMY",  fg="#1f2937")
         
         self.progress = 0
         self.messages = [

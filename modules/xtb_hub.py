@@ -36,7 +36,7 @@ class XTBHubModule(BaseModule):
 
         header = ttk.Frame(self.main_frame)
         header.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(header, text="xTB Workspace", font=("Segoe UI", 14, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header, text="xTB Workspace").pack(side=tk.LEFT)
         self.back_btn = ttk.Button(header, text="← Back", command=self._show_home, state=tk.DISABLED)
         self.back_btn.pack(side=tk.RIGHT)
 
@@ -57,7 +57,7 @@ class XTBHubModule(BaseModule):
         ttk.Label(
             hero,
             text="Open the xTB runner or the conformational sampling workspace from one place.",
-            font=("Segoe UI", 11, "bold"),
+            
         ).pack(anchor="w", pady=(0, 8))
 
         cards = ttk.Frame(hero)

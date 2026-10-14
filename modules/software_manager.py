@@ -283,7 +283,7 @@ class SoftwarePathDialog(tk.Toplevel):
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(main_frame, text="Configured Software:", font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(0, 5))
+        ttk.Label(main_frame, text="Configured Software:").pack(anchor="w", pady=(0, 5))
 
         # Treeview
         columns = ("Name", "Type", "Path")
@@ -426,7 +426,7 @@ def show_software_not_found_dialog(software_name, parent=None, callback_on_add_p
     f = ttk.Frame(top, padding=20)
     f.pack(fill=tk.BOTH, expand=True)
 
-    ttk.Label(f, text=f"Could not locate {software_name}!", font=("Segoe UI", 12, "bold"), foreground="#d9534f").pack(pady=(0, 10))
+    ttk.Label(f, text=f"Could not locate {software_name}!",  foreground="#d9534f").pack(pady=(0, 10))
     
     msg = (f"The executable for {software_name} was not found in your system PATH or configured directories.\n\n"
            "You can either:\n"

@@ -24,14 +24,14 @@ class DIAAnalysisModule(BaseModule):
         style = ttk.Style()
         style.theme_use("clam")
 
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"))
-        style.configure("TLabel", font=("Segoe UI", 11))
-        style.configure("TButton", font=("Segoe UI", 11, "bold"))
+        style.configure("Title.TLabel")
+        style.configure("TLabel")
+        style.configure("TButton")
 
         # ================= HEADER =================
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}", font=("Segoe UI", 13, "bold"), foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}",  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # ================= WORKFLOW =================
@@ -43,7 +43,7 @@ class DIAAnalysisModule(BaseModule):
         inner_frame = ttk.Frame(workflow_frame)
         inner_frame.pack(anchor="w")
 
-        ttk.Label(inner_frame, text="Select Mode:", font=("Segoe UI", 11, "bold"))\
+        ttk.Label(inner_frame, text="Select Mode:")\
             .pack(side=tk.LEFT, padx=(0, 15))
 
         ttk.Radiobutton(inner_frame, text="Fragments NOT available",
@@ -71,7 +71,7 @@ class DIAAnalysisModule(BaseModule):
         self.input_text = tk.Text(
             self.input_frame,
             height=10,
-            font=("Consolas", 11),
+            
             bg="#1e1e1e",
             fg="#00ffcc",
             insertbackground="white"

@@ -49,7 +49,7 @@ class BaseModule(ABC):
                 if app and hasattr(self, "apply_app_theme"):
                     from modules import app_theme
                     self.apply_app_theme(
-                        app_theme.build_context(app.theme_mode, app.editor_font_pt)
+                        app_theme.build_context(app.theme_mode)
                     )
             except Exception:
                 pass
