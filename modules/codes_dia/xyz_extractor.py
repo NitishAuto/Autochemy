@@ -10,12 +10,12 @@ def read_multi_xyz(path, rmsd):
     all_energy = []   # NEW
 
     while i < len(lines):
-        if not lines[i]:
+        if not lines:
             i += 1
             continue
 
         try:
-            n = int(lines[i])
+            n = int(lines)
         except:
             i += 1
             continue

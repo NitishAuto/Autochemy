@@ -16,6 +16,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from modules import app_theme
+from modules.base_module import BaseModule
 from modules.software_manager import SoftwarePathDialog
 
 
@@ -67,12 +68,58 @@ class ModernSwitch(tk.Canvas):
             self._draw()
 
 
+class PeriodicPlaceholderModule(BaseModule):
+    """Temporary placeholder for the future Periodic workspace."""
+
+    def get_name(self) -> str:
+        return "Periodic"
+
+    def create_ui(self):
+        self.main_frame = ttk.Frame(self.parent_frame)
+        card = ttk.Frame(self.main_frame)
+        card.pack(expand=True)
+        ttk.Label(card, text="Periodic").pack(pady=(24, 8))
+        ttk.Label(
+            card,
+            text="Periodic tools will be added here later.",
+            
+        ).pack(pady=(0, 24))
+
+
+class JobManagerPlaceholderModule(BaseModule):
+    """Temporary placeholder for the future Job Manager workspace."""
+
+    def get_name(self) -> str:
+        return "Job Manager"
+
+    def create_ui(self):
+        self.main_frame = ttk.Frame(self.parent_frame)
+        card = ttk.Frame(self.main_frame)
+        card.pack(expand=True)
+        ttk.Label(card, text="Job Manager").pack(pady=(24, 8))
+        ttk.Label(
+            card,
+            text="Job management tools will be added here later.",
+            
+        ).pack(pady=(0, 24))
+
+
+
 class ORCASoftwareSuite:
     """Main application shell for AutoChemy."""
 
     SESSION_VERSION = 1
     SESSION_AUTOSAVE_MS = 15000
     SESSION_FILENAME = os.path.join("AutoChemy_User_Data", ".orca_last_session.json")
+    MOLECULAR_MODULE_NAMES = (
+        "Input Creator",
+        "Output Viewer",
+        "PES Plot",
+        "DIA",
+        "Orbital Creator",
+        "ML",
+        "xtb & Conformational Analysis",
+    )
 
     def __init__(self, root):
         """Initialize the main application."""
@@ -84,8 +131,8 @@ class ORCASoftwareSuite:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.theme_mode = "light"
-        self.editor_font_pt = 12
         self.beginner_mode = True
+        app_theme.configure_default_fonts(self.root)
         self.style = ttk.Style()
         self._dark_mode_var = None
         self._beginner_mode_var = None
@@ -94,6 +141,8 @@ class ORCASoftwareSuite:
         self._save_session_enabled = True
         self._current_module_name = None
         self._pending_module_sessions = {}
+        self._sidebar_mode = "top"
+        self._last_molecular_module_name = None
         self._session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.SESSION_FILENAME)
 
         self._configure_style()
@@ -112,11 +161,6 @@ class ORCASoftwareSuite:
         self._broadcast_theme()
         self._schedule_session_autosave()
 
-        self.root.bind_all("<Control-plus>", lambda e: self._font_delta(1))
-        self.root.bind_all("<Control-equal>", lambda e: self._font_delta(1))
-        self.root.bind_all("<Control-minus>", lambda e: self._font_delta(-1))
-        self.root.bind_all("<Control-0>", lambda e: self._font_reset())
-
     def _configure_style(self):
         p = app_theme.configure_ttk_style(self.style, self.theme_mode)
         self._palette = p
@@ -129,7 +173,7 @@ class ORCASoftwareSuite:
         top_inner.pack(fill=tk.X, expand=True)
         ttk.Frame(top_inner).pack(side=tk.LEFT, expand=True)
         self._beginner_mode_var = tk.BooleanVar(value=self.beginner_mode)
-        ttk.Label(top_inner, text="Beginner", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(0, 4))
+        ttk.Label(top_inner, text="Beginner").pack(side=tk.RIGHT, padx=(0, 4))
         self._beginner_mode_switch = ModernSwitch(
             top_inner,
             bg_off="#0b5cab",
@@ -138,9 +182,9 @@ class ORCASoftwareSuite:
             command=self._on_beginner_mode_toggle,
         )
         self._beginner_mode_switch.pack(side=tk.RIGHT, padx=(0, 12))
-        ttk.Label(top_inner, text="Experienced", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(4, 0))
+        ttk.Label(top_inner, text="Experienced").pack(side=tk.RIGHT, padx=(4, 0))
         self._dark_mode_var = tk.BooleanVar(value=(self.theme_mode == "dark"))
-        ttk.Label(top_inner, text="Dark", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(0, 4))
+        ttk.Label(top_inner, text="Dark").pack(side=tk.RIGHT, padx=(0, 4))
         self._dark_mode_switch = ModernSwitch(
             top_inner,
             bg_off="#cbd5e1",
@@ -149,7 +193,7 @@ class ORCASoftwareSuite:
             command=self._on_dark_mode_toggle,
         )
         self._dark_mode_switch.pack(side=tk.RIGHT, padx=(0, 12))
-        ttk.Label(top_inner, text="Light", font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(4, 0))
+        ttk.Label(top_inner, text="Light").pack(side=tk.RIGHT, padx=(4, 0))
         ttk.Separator(self.root, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=8, pady=(0, 4))
 
         main_container = ttk.Frame(self.root)
@@ -159,33 +203,60 @@ class ORCASoftwareSuite:
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=6)
         self.sidebar.pack_propagate(False)
 
-        user_name = ""
-        user_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AutoChemy_User_Data", "user_name.txt")
-        if os.path.exists(user_file):
-            try:
-                with open(user_file, "r") as f:
-                    user_name = f.read().strip()
-            except Exception:
-                pass
-        else:
-            from tkinter import simpledialog
-            # Only ask if we are actually rendering the main window to avoid breaking automated tests if any
-            name = simpledialog.askstring("Welcome to AutoChemy", "Please enter your name (optional):", parent=self.root)
-            if name:
-                user_name = name.strip()
-                try:
-                    os.makedirs(os.path.dirname(user_file), exist_ok=True)
-                    with open(user_file, "w") as f:
-                        f.write(user_name)
-                except Exception:
-                    pass
-        self.header_text_base = f"{user_name}'s Auto" if user_name else "Auto"
+        # user_name = ""
+        # user_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AutoChemy_User_Data", "user_name.txt")
+        # if os.path.exists(user_file):
+        #     try:
+        #         with open(user_file, "r") as f:
+        #             user_name = f.read().strip()
+        #     except Exception:
+        #         pass
+        # else:
+        #     from tkinter import simpledialog
+        #     # Only ask if we are actually rendering the main window to avoid breaking automated tests if any
+        #     name = simpledialog.askstring("Welcome to AutoChemy", "Please enter your name (optional):", parent=self.root)
+        #     if name:
+        #         user_name = name.strip()
+        #         try:
+        #             os.makedirs(os.path.dirname(user_file), exist_ok=True)
+        #             with open(user_file, "w") as f:
+        #                 f.write(user_name)
+        #         except Exception:
+        #             pass
+        # self.header_text_base = f"{user_name}'s Auto" if user_name else "Auto"
+        user_name="Auto"
         self.sidebar_header = tk.Canvas(self.sidebar, height=36, highlightthickness=0)
         self.sidebar_header.pack(fill=tk.X, pady=(0, 10), padx=4)
         self.sidebar_header.bind("<Configure>", lambda e: self._draw_sidebar_header())
 
-        self.module_buttons_frame = ttk.Frame(self.sidebar)
-        self.module_buttons_frame.pack(fill=tk.BOTH, expand=True, padx=4)
+        self._sidebar_top_frame = ttk.Frame(self.sidebar)
+        self._sidebar_top_frame.pack(fill=tk.X, padx=4)
+
+        self._sidebar_group_frame = ttk.Frame(self.sidebar)
+        self._sidebar_group_header = ttk.Frame(self._sidebar_group_frame)
+        self._sidebar_group_header.pack(fill=tk.X, pady=(8, 4))
+        self._sidebar_back_button = ttk.Button(
+            self._sidebar_group_header,
+            text="Back",
+            command=self._show_top_sidebar,
+            style="Sidebar.TButton",
+            width=10,
+        )
+        self._sidebar_back_button.pack(side=tk.LEFT)
+        self._sidebar_group_title = ttk.Label(self._sidebar_group_header, text="")
+        self._sidebar_group_title.pack(side=tk.LEFT, padx=(8, 0))
+
+        self._sidebar_group_body = ttk.Frame(self._sidebar_group_frame)
+        self._sidebar_group_body.pack(fill=tk.BOTH, expand=True)
+        self._molecular_buttons_frame = ttk.Frame(self._sidebar_group_body)
+        self._molecular_buttons_frame.pack(fill=tk.BOTH, expand=True)
+        self._periodic_placeholder_frame = ttk.Frame(self._sidebar_group_body)
+        ttk.Label(
+            self._periodic_placeholder_frame,
+            text="Periodic tools will be added here later.",
+            wraplength=180,
+            justify=tk.CENTER,
+        ).pack(expand=True, fill=tk.BOTH, padx=12, pady=12)
 
         self.module_container = ttk.Frame(main_container)
         self.module_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
@@ -205,10 +276,6 @@ class ORCASoftwareSuite:
         menubar.add_cascade(label="View", menu=self._view_menu)
         self._view_menu.add_command(label="Dark theme", command=lambda: self._set_theme("dark"))
         self._view_menu.add_command(label="Light theme", command=lambda: self._set_theme("light"))
-        self._view_menu.add_separator()
-        self._view_menu.add_command(label="Larger editor text  (+)", command=lambda: self._font_delta(1))
-        self._view_menu.add_command(label="Smaller editor text (−)", command=lambda: self._font_delta(-1))
-        self._view_menu.add_command(label="Reset editor text size", command=self._font_reset)
 
         self._modules_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Modules", menu=self._modules_menu)
@@ -241,6 +308,103 @@ class ORCASoftwareSuite:
                 except tk.TclError:
                     pass
 
+    def _clear_frame_children(self, frame):
+        for child in frame.winfo_children():
+            child.destroy()
+
+    def _set_sidebar_mode(self, mode: str):
+        mode = mode if mode in {"top", "molecular", "periodic"} else "top"
+        self._sidebar_mode = mode
+
+        if mode == "top":
+            self._sidebar_group_frame.pack_forget()
+            return
+
+        self._sidebar_group_title.config(text="Molecular" if mode == "molecular" else "Periodic")
+        self._sidebar_group_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=(6, 0))
+
+        if mode == "molecular":
+            self._periodic_placeholder_frame.pack_forget()
+            if not self._molecular_buttons_frame.winfo_ismapped():
+                self._molecular_buttons_frame.pack(fill=tk.BOTH, expand=True)
+        elif mode == "periodic":
+            self._molecular_buttons_frame.pack_forget()
+            if not self._periodic_placeholder_frame.winfo_ismapped():
+                self._periodic_placeholder_frame.pack(fill=tk.BOTH, expand=True)
+
+    def _show_top_sidebar(self):
+        self._set_sidebar_mode("top")
+
+    def _show_molecular_sidebar(self):
+        self._set_sidebar_mode("molecular")
+        if self._last_molecular_module_name in self.modules:
+            if self._current_module_name != self._last_molecular_module_name:
+                self._switch_module(self._last_molecular_module_name)
+            return
+        if self._current_module_name not in self.MOLECULAR_MODULE_NAMES:
+            for module_name in self.MOLECULAR_MODULE_NAMES:
+                if module_name in self.modules:
+                    self._switch_module(module_name)
+                    return
+
+    def _show_periodic_sidebar(self):
+        self._set_sidebar_mode("periodic")
+        if "Periodic" in self.modules and self._current_module_name != "Periodic":
+            self._switch_module("Periodic")
+
+    def _show_job_manager_sidebar(self):
+        self._set_sidebar_mode("top")
+        if "Job Manager" in self.modules and self._current_module_name != "Job Manager":
+            self._switch_module("Job Manager")
+
+    def _build_sidebar_navigation(self):
+        self._clear_frame_children(self._sidebar_top_frame)
+        self._clear_frame_children(self._molecular_buttons_frame)
+
+        molecular_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text="Molecular",
+            command=self._show_molecular_sidebar,
+            style="Sidebar.TButton",
+        )
+        molecular_btn.pack(fill=tk.X, pady=(0, 3))
+
+        periodic_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text="Periodic",
+            command=self._show_periodic_sidebar,
+            style="Sidebar.TButton",
+        )
+        periodic_btn.pack(fill=tk.X, pady=3)
+
+        job_manager_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text="Job Manager",
+            command=self._show_job_manager_sidebar,
+            style="Sidebar.TButton",
+        )
+        job_manager_btn.pack(fill=tk.X, pady=3)
+
+        about_btn = ttk.Button(
+            self._sidebar_top_frame,
+            text="About us",
+            command=lambda: self._switch_module("About us"),
+            style="Sidebar.TButton",
+        )
+        about_btn.pack(fill=tk.X, pady=(3, 0))
+
+        for module_name in self.MOLECULAR_MODULE_NAMES:
+            module = self.modules.get(module_name)
+            if not module:
+                continue
+            btn = ttk.Button(
+                self._molecular_buttons_frame,
+                text=module_name,
+                command=lambda name=module_name: self._switch_module(name),
+                style="Sidebar.TButton",
+            )
+            btn.pack(fill=tk.X, pady=3)
+
     def _on_dark_mode_toggle(self):
         if hasattr(self, "_dark_mode_switch"):
             self._dark_mode_var.set(bool(self._dark_mode_switch.is_on))
@@ -267,19 +431,11 @@ class ORCASoftwareSuite:
         self._sync_dark_mode_toggle()
         self._broadcast_theme()
 
-    def _font_delta(self, delta: int):
-        self.editor_font_pt = max(8, min(24, self.editor_font_pt + delta))
-        self._broadcast_theme()
-
-    def _font_reset(self):
-        self.editor_font_pt = 12
-        self._broadcast_theme()
-
     def _manage_paths(self):
         SoftwarePathDialog(self.root)
 
     def _broadcast_theme(self):
-        ctx = app_theme.build_context(self.theme_mode, self.editor_font_pt)
+        ctx = app_theme.build_context(self.theme_mode)
         ctx["beginner_mode"] = self.beginner_mode
         self._draw_sidebar_header()
         for mod in self.modules.values():
@@ -297,8 +453,7 @@ class ORCASoftwareSuite:
             self.sidebar_header.configure(bg=bg_col)
             fg_col = "#000000"
             
-            font = ("Segoe UI", 16, "bold")
-            base_id = self.sidebar_header.create_text(0, 18, text=self.header_text_base, font=font, fill=fg_col, anchor="w")
+            base_id = self.sidebar_header.create_text(0, 18, text=self.header_text_base,  fill=fg_col, anchor="w")
             x_offset = self.sidebar_header.bbox(base_id)[2]
             
             # The image colors for C, h, e, m, y
@@ -307,7 +462,7 @@ class ORCASoftwareSuite:
             ids = [base_id]
             
             for ch, col in zip(chars, colors):
-                tid = self.sidebar_header.create_text(x_offset, 18, text=ch, font=font, fill=col, anchor="w")
+                tid = self.sidebar_header.create_text(x_offset, 18, text=ch,  fill=col, anchor="w")
                 x_offset = self.sidebar_header.bbox(tid)[2]
                 ids.append(tid)
                 
@@ -393,21 +548,26 @@ class ORCASoftwareSuite:
             print(msg)
             skipped_modules.append(msg)
 
+        try:
+            from modules.structure_generator import StructureGeneratorModule
+            module_classes.append((StructureGeneratorModule, "Periodic"))
+        except Exception as exc:
+            msg = f"Skipping module Structure Generator: {exc}"
+            print(msg)
+            skipped_modules.append(msg)
+            module_classes.append((PeriodicPlaceholderModule, "Periodic"))
+
+        module_classes.append((JobManagerPlaceholderModule, "Job Manager"))
+
         for module_class, module_name in module_classes:
             try:
                 module = module_class(self.module_container)
                 self.modules[module_name] = module
 
-                btn = ttk.Button(
-                    self.module_buttons_frame,
-                    text=f"{module.get_icon()} {module_name}",
-                    command=lambda name=module_name: self._switch_module(name),
-                    style="Sidebar.TButton",
-                )
-                btn.pack(fill=tk.X, pady=3)
-
             except Exception as e:
                 print(f"Error loading module {module_name}: {e}")
+
+        self._build_sidebar_navigation()
 
         if skipped_modules:
             try:
@@ -434,6 +594,14 @@ class ORCASoftwareSuite:
                 print(f"Error deactivating {self.current_module.get_name()}: {e}")
 
         new_module = self.modules[module_name]
+
+        if module_name == "Periodic":
+            self._set_sidebar_mode("periodic")
+        elif module_name in self.MOLECULAR_MODULE_NAMES:
+            self._last_molecular_module_name = module_name
+            self._set_sidebar_mode("molecular")
+        else:
+            self._set_sidebar_mode("top")
         
         # Show loading cursor to prevent "freeze" feeling
         self.root.config(cursor="watch")
@@ -469,10 +637,6 @@ class ORCASoftwareSuite:
         modules_state = data.get("modules")
         if isinstance(modules_state, dict):
             self._pending_module_sessions = dict(modules_state)
-
-        font_pt = app_state.get("editor_font_pt")
-        if isinstance(font_pt, int):
-            self.editor_font_pt = max(8, min(24, font_pt))
 
         beginner_mode = app_state.get("beginner_mode")
         if isinstance(beginner_mode, bool):
@@ -604,7 +768,6 @@ class ORCASoftwareSuite:
             "version": self.SESSION_VERSION,
             "app": {
                 "theme_mode": self.theme_mode,
-                "editor_font_pt": self.editor_font_pt,
                 "beginner_mode": self.beginner_mode,
                 "current_module": self._current_module_name,
                 "window_geometry": self.root.geometry(),
@@ -871,7 +1034,7 @@ Modules:
 - xtb & Conformational Analysis: Combined workspace for xTB tools plus conformational sampling (GOAT/CREST)
 - About us: CCL IIT Roorkee — credits and group website
 
-Use the Dark mode switch (top-right) or View menu for theme; editor font: Ctrl+/Ctrl−.
+Use the Dark mode switch (top-right) or View menu for theme; editor font: Ctrl+/Ctrl-.
 
 Version: 1.0.0
 """
@@ -997,7 +1160,7 @@ class SplashScreen(tk.Toplevel):
             if len(self.frames) > 1:
                 self.after_idle(self._animate_gif)
         else:
-            self.label.config(text="AUTOCHEMY", font=("Segoe UI", 56, "bold"), fg="#1f2937")
+            self.label.config(text="AUTOCHEMY",  fg="#1f2937")
         
         self.progress = 0
         self.messages = [

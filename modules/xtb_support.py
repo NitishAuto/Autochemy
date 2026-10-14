@@ -205,7 +205,7 @@ def _detect_unphysical_contacts(atom_lines: list[str], min_dist_ang: float = 0.2
 
     n = len(atoms)
     for i in range(n):
-        si, xi, yi, zi = atoms[i]
+        si, xi, yi, zi = atoms        
         for j in range(i + 1, n):
             sj, xj, yj, zj = atoms[j]
             dx = xi - xj
@@ -1043,18 +1043,18 @@ def dedupe_xyz_file_to_ensemble(
     e_min = min(finite) if finite else None
     use_ewin = e_min is not None
 
-    order = sorted(range(n), key=lambda i: energies[i] if energies[i] == energies[i] else float("inf"))
+    order = sorted(range(n), key=lambda i: energies if energies == energies else float("inf"))
 
     kept_sym: list[list[str]] = []
     kept_coords: list = []
     kept_order: list[int] = []
 
     for i in order:
-        e = energies[i]
+        e = energies        
         if use_ewin and e == e:
             if (e - e_min) * 627.509 > ewin_kcal:
                 continue
-        comment, atom_lines = frames[i]
+        comment, atom_lines = frames        
         parsed = _frame_to_coords(atom_lines)
         if parsed is None:
             continue
@@ -1088,7 +1088,7 @@ def dedupe_xyz_file_to_ensemble(
     try:
         with open(out_ensemble_path, "w", encoding="utf-8", newline="\n") as fh:
             for i in write_sequence:
-                comment, atom_lines = frames[i]
+                comment, atom_lines = frames                
                 fh.write(f"{len(atom_lines)}\n{comment}\n")
                 fh.write("\n".join(atom_lines) + "\n")
     except OSError as exc:
@@ -1181,8 +1181,8 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
         n_tbl = min(14, n)
         rows = []
         for i in range(n_tbl):
-            p = pairs[i]
-            rows.append([str(i + 1), str(p[0]), f"{p[1]:.3f}", f"{pcts[i]:.2f}"])
+            p = pairs            
+            rows.append([str(i + 1), str(p[0]), f"{p[1]:.3f}", f"{pcts:.2f}"])
         tbl = ax_tbl.table(
             cellText=rows,
             colLabels=["Rank", "CREST#", "ΔE", "%298K"],
@@ -1232,14 +1232,14 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
             w // 2,
             14,
             text=f"CREST energies (sorted) — N={n}  |  E(lowest)={e_min:.6f} Eh  |  span={span_kcal:.2f} kcal/mol",
-            font=("Segoe UI", 9),
+            
             fill="#0f172a",
         )
         cv.create_text(
             w // 2,
             30,
             text="Tk canvas — install matplotlib for table + color scale",
-            font=("Segoe UI", 8),
+            
             fill="#64748b",
         )
         row_h = min(22, max(10, plot_h // max(n, 1)))
@@ -1247,13 +1247,13 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
             y0 = pad_t + i * row_h
             if y0 + row_h > pad_t + plot_h:
                 break
-            cv.create_text(pad_l - 6, y0 + row_h // 2, text=f"#{i+1} #{crest_id}", anchor="e", font=("Consolas", 8), fill="#334155")
+            cv.create_text(pad_l - 6, y0 + row_h // 2, text=f"#{i+1} #{crest_id}", anchor="e",  fill="#334155")
             bw = (de / max_e) * plot_w
             cv.create_rectangle(pad_l, y0 + 2, pad_l + bw, y0 + row_h - 2, fill="#7c3aed", outline="#4c1d95", width=1)
-            cv.create_text(pad_l + bw + 6, y0 + row_h // 2, text=f"{de:.2f}", anchor="w", font=("Consolas", 8), fill="#0f172a")
-        cv.create_text(pad_l + plot_w // 2, h - 22, text="ΔE (kcal/mol) vs lowest", font=("Segoe UI", 8), fill="#475569")
+            cv.create_text(pad_l + bw + 6, y0 + row_h // 2, text=f"{de:.2f}", anchor="w",  fill="#0f172a")
+        cv.create_text(pad_l + plot_w // 2, h - 22, text="ΔE (kcal/mol) vs lowest",  fill="#475569")
         top3 = ", ".join(f"#{pairs[j][0]}:{pcts[j]:.1f}%" for j in range(min(3, n)))
-        cv.create_text(pad_l, h - 6, text=f"Boltzmann @298K (top 3): {top3}", anchor="w", font=("Segoe UI", 8), fill="#475569")
+        cv.create_text(pad_l, h - 6, text=f"Boltzmann @298K (top 3): {top3}", anchor="w",  fill="#475569")
         master.update_idletasks()
         return ""
     except Exception as exc:

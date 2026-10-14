@@ -113,9 +113,6 @@ class OrbitalCreatorModule:
     def get_name(self):
         return "Orbital Creator"
 
-    def get_icon(self):
-        return "🧬"
-
     def activate(self):
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -130,7 +127,7 @@ class OrbitalCreatorModule:
 
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text=f"{self.get_icon()}  {self.get_name()}", font=("Segoe UI", 13, "bold"), foreground="#0b5cab").pack(side=tk.LEFT)
+        ttk.Label(head, text=self.get_name(),  foreground="#0b5cab").pack(side=tk.LEFT)
         ttk.Separator(self.main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 10))
 
         # -------- ORCA output file --------
@@ -164,8 +161,7 @@ class OrbitalCreatorModule:
         # -------- Summary --------
         self.summary_label = ttk.Label(
             self.main_frame,
-            text="No analysis performed",
-            font=("TkDefaultFont", 10, "bold")
+            text="No analysis performed"
         )
         self.summary_label.pack(pady=5)
 
@@ -205,12 +201,12 @@ class OrbitalCreatorModule:
         notebook.pack(fill=tk.BOTH, expand=True, pady=10)
 
         self.occ_text = scrolledtext.ScrolledText(
-            notebook, font=("Courier", 10)
+            notebook
         )
         notebook.add(self.occ_text, text="Orbital Occupancy")
 
         self.mag_text = scrolledtext.ScrolledText(
-            notebook, font=("Courier", 10)
+            notebook
         )
         notebook.add(self.mag_text, text="Magnetic Orbitals")
 

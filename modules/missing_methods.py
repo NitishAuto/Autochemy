@@ -33,7 +33,7 @@
             body,
             text=(
                 "Edit the full ORCA input here. Apply copies back to the main preview on the right. "
-                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, …), "
+                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, ...), "
                 "then Generate Preview again if you change method or geometry."
             ),
             wraplength=740,
@@ -65,7 +65,7 @@
 
         wrap = ttk.Frame(body)
         wrap.pack(fill=tk.BOTH, expand=True)
-        txt = tk.Text(wrap, font=("Consolas", 11), wrap=tk.NONE, undo=True)
+        txt = tk.Text(wrap,  wrap=tk.NONE, undo=True)
         sy = ttk.Scrollbar(wrap, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(wrap, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
@@ -80,7 +80,7 @@
                 top_app = self.parent.winfo_toplevel()
                 app = getattr(top_app, "_orca_app", None)
                 if app:
-                    ctx = app_theme.build_context(app.theme_mode, app.editor_font_pt)
+                    ctx = app_theme.build_context(app.theme_mode)
                     app_theme.apply_editor_style(txt, ctx)
             except Exception:
                 pass
@@ -167,7 +167,7 @@
             is_dark = mode in ("dark", "black")
         except Exception:
             is_dark = False
-        lb = tk.Listbox(right, selectmode=tk.EXTENDED, font=("Consolas", 10))
+        lb = tk.Listbox(right, selectmode=tk.EXTENDED)
         sy = ttk.Scrollbar(right, orient=tk.VERTICAL, command=lb.yview)
         lb.config(yscrollcommand=sy.set)
         lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)

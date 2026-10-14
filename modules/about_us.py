@@ -16,9 +16,6 @@ class AboutUsModule(BaseModule):
     def get_name(self) -> str:
         return "About us"
 
-    def get_icon(self) -> str:
-        return "✨"
-
     def create_ui(self):
         self.main_frame = ttk.Frame(self.parent_frame)
         
@@ -103,8 +100,8 @@ class AboutUsModule(BaseModule):
         else:
             self.canvas.create_text(
                 cx, y_cursor,
-                text="🛡️",
-                font=("Segoe UI", 48),
+                text="",
+                
                 justify=tk.CENTER,
                 anchor=tk.N
             )
@@ -142,7 +139,7 @@ class AboutUsModule(BaseModule):
             title_id = self.canvas.create_text(
                 cx, y_cursor + 24,
                 text=card["title"],
-                font=("Segoe UI", 20, "bold"),
+                
                 fill=accent_col,
                 width=card_w - 48,
                 justify=tk.CENTER,
@@ -157,7 +154,7 @@ class AboutUsModule(BaseModule):
             if card.get("type") == "team":
                 # Introduction text
                 intro_txt = tk.Text(
-                    self.canvas, font=("Segoe UI", 13),
+                    self.canvas, 
                     fg=text_sub, bg=card_bg, bd=0, highlightthickness=0, height=1
                 )
                 intro_txt.tag_configure("center", justify="center")
@@ -193,7 +190,7 @@ class AboutUsModule(BaseModule):
                     
                     # Name and modules below photo
                     name_txt = tk.Text(
-                        self.canvas, font=("Segoe UI", 12, "bold"),
+                        self.canvas, 
                         fg=text_main if not is_dark else "#f8fafc",
                         bg=card_bg, bd=0, highlightthickness=0, height=1, width=25
                     )
@@ -215,7 +212,7 @@ class AboutUsModule(BaseModule):
                     modules_text = person.get("modules", "")
                     if modules_text:
                         mod_txt = tk.Text(
-                            self.canvas, font=("Segoe UI", 9),
+                            self.canvas, 
                             fg=text_sub, bg=card_bg, bd=0, highlightthickness=0,
                             height=3, width=28, wrap=tk.WORD
                         )
@@ -240,7 +237,7 @@ class AboutUsModule(BaseModule):
                 # Footer text
                 footer_y = team_block_bottom + 16
                 foot_txt = tk.Text(
-                    self.canvas, font=("Segoe UI", 12),
+                    self.canvas, 
                     fg=text_sub, bg=card_bg, bd=0, highlightthickness=0, height=2
                 )
                 foot_txt.tag_configure("center", justify="center")
@@ -262,7 +259,7 @@ class AboutUsModule(BaseModule):
                 body_id = self.canvas.create_text(
                     cx, body_y,
                     text=card["body"],
-                    font=("Segoe UI", 13),
+                    
                     fill=text_sub,
                     width=card_w - 48,
                     justify=tk.CENTER,

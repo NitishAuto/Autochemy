@@ -227,26 +227,26 @@ def show_bond_query(parent):
     frame = ttk.Frame(win, padding=20)
     frame.pack(fill=tk.BOTH, expand=True)
     
-    ttk.Label(frame, text="Atom 1:", font=("Segoe UI", 10)).grid(row=0, column=0, pady=5, sticky="e")
-    e_a1 = ttk.Entry(frame, width=10, font=("Segoe UI", 10))
+    ttk.Label(frame, text="Atom 1:").grid(row=0, column=0, pady=5, sticky="e")
+    e_a1 = ttk.Entry(frame, width=10)
     e_a1.grid(row=0, column=1, pady=5, padx=5, sticky="w")
     
-    ttk.Label(frame, text="Atom 2:", font=("Segoe UI", 10)).grid(row=1, column=0, pady=5, sticky="e")
-    e_a2 = ttk.Entry(frame, width=10, font=("Segoe UI", 10))
+    ttk.Label(frame, text="Atom 2:").grid(row=1, column=0, pady=5, sticky="e")
+    e_a2 = ttk.Entry(frame, width=10)
     e_a2.grid(row=1, column=1, pady=5, padx=5, sticky="w")
     
-    ttk.Label(frame, text="Type:", font=("Segoe UI", 10)).grid(row=2, column=0, pady=5, sticky="e")
-    cb_type = ttk.Combobox(frame, values=["Single", "Double", "Triple"], width=10, state="readonly", font=("Segoe UI", 10))
+    ttk.Label(frame, text="Type:").grid(row=2, column=0, pady=5, sticky="e")
+    cb_type = ttk.Combobox(frame, values=["Single", "Double", "Triple"], width=10, state="readonly")
     cb_type.current(0)
     cb_type.grid(row=2, column=1, pady=5, padx=5, sticky="w")
     
-    res_label = tk.Label(frame, text="", font=("Segoe UI", 12, "bold"), fg="#0b5cab")
+    res_label = tk.Label(frame, text="",  fg="#0b5cab")
     res_label.grid(row=4, column=0, columnspan=2, pady=10)
     
     # Save to DB Frame
     add_frame = ttk.Frame(frame)
-    ttk.Label(add_frame, text="Length (Å):", font=("Segoe UI", 9)).pack(side="left")
-    e_new_len = ttk.Entry(add_frame, width=8, font=("Segoe UI", 9))
+    ttk.Label(add_frame, text="Length (Å):").pack(side="left")
+    e_new_len = ttk.Entry(add_frame, width=8)
     e_new_len.pack(side="left", padx=5)
     
     def do_add_from_query():

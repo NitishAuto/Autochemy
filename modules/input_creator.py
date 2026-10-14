@@ -1,6 +1,7 @@
 #this version run the pefect window
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
+import ast
 import json
 import os
 
@@ -447,19 +448,19 @@ def _extract_rows_from_gjf_text(text: str):
     lines = (text or "").splitlines()
     i = 0
     n = len(lines)
-    while i < n and lines[i].strip().startswith("%"):
+    while i < n and lines.strip().startswith("%"):
         i += 1
-    while i < n and not lines[i].strip().startswith("#"):
+    while i < n and not lines.strip().startswith("#"):
         i += 1
     if i >= n:
         return []
-    while i < n and lines[i].strip():
+    while i < n and lines.strip():
         i += 1
-    while i < n and not lines[i].strip():
+    while i < n and not lines.strip():
         i += 1
-    while i < n and lines[i].strip():
+    while i < n and lines.strip():
         i += 1
-    while i < n and not lines[i].strip():
+    while i < n and not lines.strip():
         i += 1
     if i >= n:
         return []
@@ -549,7 +550,7 @@ def _last_xyz_frame_rows(text: str):
     i = 0
     n_lines = len(lines)
     while i < n_lines:
-        s = lines[i].strip()
+        s = lines.strip()
         if s.isdigit():
             n = int(s)
             if n > 0 and i + 2 + n <= n_lines:
@@ -764,17 +765,17 @@ class FunctionalSelectorPopup(tk.Toplevel):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, padx=10, pady=10)
         
-        ttk.Label(header, text="Grouping:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Grouping:").pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="Popular / Famous", variable=self.sort_mode, value="Popular", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="By Family", variable=self.sort_mode, value="Family", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="By Developer", variable=self.sort_mode, value="Developer", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
-        search_entry = ttk.Entry(header, textvariable=self.search_var, font=("Segoe UI", 11), width=25)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
+        search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Functional", command=self._add_new_functional).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Functional", command=self._add_new_functional).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -838,7 +839,7 @@ class FunctionalSelectorPopup(tk.Toplevel):
             groups.setdefault(key, []).append((func_name, data))
             
         if not groups:
-            tk.Label(self.scrollable_frame, text="No Functionals match your search.", font=("Segoe UI", 12), bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
+            tk.Label(self.scrollable_frame, text="No Functionals match your search.",  bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
             return
             
         sorted_groups = sorted(groups.items())
@@ -863,7 +864,7 @@ class FunctionalSelectorPopup(tk.Toplevel):
             col_frame = tk.Frame(self.scrollable_frame, bg="#ffffff")
             col_frame.grid(row=current_row, column=current_col, sticky="nw", padx=max(2, int(8 * self.scale_factor)), pady=max(2, int(8 * self.scale_factor)))
             
-            ttk.Label(col_frame, text=group_name, font=("Segoe UI", fsize_h, "bold"), foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
+            ttk.Label(col_frame, text=group_name,  foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
             ttk.Separator(col_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, max(1, int(6 * self.scale_factor))))
             
             for fn_name, data in items:
@@ -902,18 +903,18 @@ class FunctionalSelectorPopup(tk.Toplevel):
                 top_row.bind("<Button-1>", click_handler)
                 top_row.bind("<Button-3>", right_click_handler)
                 
-                lbl = tk.Label(top_row, text=fn_name, font=("Segoe UI", fsize_t, "bold"), bg=bg_color, fg="#0f172a")
+                lbl = tk.Label(top_row, text=fn_name,  bg=bg_color, fg="#0f172a")
                 lbl.pack(side=tk.LEFT, anchor="w")
                 lbl.bind("<Button-1>", click_handler)
                 lbl.bind("<Button-3>", right_click_handler)
                 
-                info_btn = tk.Label(top_row, text="ⓘ", font=("Segoe UI", fsize_i), fg="#0284c7", bg=bg_color, cursor="question_arrow")
+                info_btn = tk.Label(top_row, text="",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
                 info_btn.pack(side=tk.RIGHT, anchor="e", padx=(pad_gap, 0))
                 FloatingTooltip(info_btn, data['desc'])
                 
                 hf_text = f"Exact Exchange: {data['hf']}"
                 if data['hf'] == '0%': hf_text = "Pure (0%)"
-                sub = tk.Label(inner, text=hf_text, font=("Segoe UI", fsize_s), bg=bg_color, fg="#475569")
+                sub = tk.Label(inner, text=hf_text,  bg=bg_color, fg="#475569")
                 sub.pack(anchor="w", side=tk.BOTTOM, pady=(max(1, int(2 * self.scale_factor)), 0))
                 sub.bind("<Button-1>", click_handler)
                 
@@ -940,7 +941,7 @@ class FunctionalSelectorPopup(tk.Toplevel):
         ttk.Checkbutton(libxc_frame, text="Include Libxc Block", variable=libxc_var, command=lambda: toggle_libxc()).pack(anchor="w")
         
         text_frame = ttk.Frame(libxc_frame)
-        txt_libxc = tk.Text(text_frame, height=10, width=50, font=("Consolas", 10))
+        txt_libxc = tk.Text(text_frame, height=10, width=50)
         txt_libxc.pack(fill=tk.BOTH, expand=True)
         if data.get("libxc_block"):
             txt_libxc.insert("1.0", data["libxc_block"])
@@ -1021,17 +1022,17 @@ class BasisSelectorPopup(tk.Toplevel):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, padx=10, pady=10)
         
-        ttk.Label(header, text="Grouping:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Grouping:").pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="Popular / Famous", variable=self.sort_mode, value="Popular", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="By Family", variable=self.sort_mode, value="Family", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="By Type", variable=self.sort_mode, value="Type", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
-        search_entry = ttk.Entry(header, textvariable=self.search_var, font=("Segoe UI", 11), width=25)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
+        search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Basis Set", command=self._add_new_basis).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Basis Set", command=self._add_new_basis).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -1095,7 +1096,7 @@ class BasisSelectorPopup(tk.Toplevel):
             groups.setdefault(key, []).append((basis_name, data))
             
         if not groups:
-            tk.Label(self.scrollable_frame, text="No Basis Sets match your search.", font=("Segoe UI", 12), bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
+            tk.Label(self.scrollable_frame, text="No Basis Sets match your search.",  bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
             return
             
         sorted_groups = sorted(groups.items())
@@ -1120,7 +1121,7 @@ class BasisSelectorPopup(tk.Toplevel):
             col_frame = tk.Frame(self.scrollable_frame, bg="#ffffff")
             col_frame.grid(row=current_row, column=current_col, sticky="nw", padx=max(2, int(8 * self.scale_factor)), pady=max(2, int(8 * self.scale_factor)))
             
-            ttk.Label(col_frame, text=group_name, font=("Segoe UI", fsize_h, "bold"), foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
+            ttk.Label(col_frame, text=group_name,  foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
             ttk.Separator(col_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, max(1, int(6 * self.scale_factor))))
             
             for bs_name, data in items:
@@ -1159,17 +1160,17 @@ class BasisSelectorPopup(tk.Toplevel):
                 top_row.bind("<Button-1>", click_handler)
                 top_row.bind("<Button-3>", right_click_handler)
                 
-                lbl = tk.Label(top_row, text=bs_name, font=("Segoe UI", fsize_t, "bold"), bg=bg_color, fg="#0f172a")
+                lbl = tk.Label(top_row, text=bs_name,  bg=bg_color, fg="#0f172a")
                 lbl.pack(side=tk.LEFT, anchor="w")
                 lbl.bind("<Button-1>", click_handler)
                 lbl.bind("<Button-3>", right_click_handler)
                 
-                info_btn = tk.Label(top_row, text="ⓘ", font=("Segoe UI", fsize_i), fg="#0284c7", bg=bg_color, cursor="question_arrow")
+                info_btn = tk.Label(top_row, text="",  fg="#0284c7", bg=bg_color, cursor="question_arrow")
                 info_btn.pack(side=tk.RIGHT, anchor="e", padx=(pad_gap, 0))
                 FloatingTooltip(info_btn, data['desc'])
                 
                 bs_type = data['type']
-                sub = tk.Label(inner, text=bs_type, font=("Segoe UI", fsize_s), bg=bg_color, fg="#475569")
+                sub = tk.Label(inner, text=bs_type,  bg=bg_color, fg="#475569")
                 sub.pack(anchor="w", side=tk.BOTTOM, pady=(max(1, int(2 * self.scale_factor)), 0))
                 sub.bind("<Button-1>", click_handler)
                 
@@ -1310,17 +1311,17 @@ class SolventSelectorPopup(tk.Toplevel):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, padx=10, pady=10)
         
-        ttk.Label(header, text="Grouping:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
+        ttk.Label(header, text="Grouping:").pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="Popular / Famous", variable=self.sort_mode, value="Popular", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="Alphabetical", variable=self.sort_mode, value="Alphabetical", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         ttk.Radiobutton(header, text="All", variable=self.sort_mode, value="All", command=self.build_grid).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(header, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=15)
-        ttk.Label(header, text="🔍 Search:", font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=5)
-        search_entry = ttk.Entry(header, textvariable=self.search_var, font=("Segoe UI", 11), width=25)
+        ttk.Label(header, text="Search:").pack(side=tk.LEFT, padx=5)
+        search_entry = ttk.Entry(header, textvariable=self.search_var,  width=25)
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(header, text="+ Add New Solvent", command=self._add_new_solvent).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(header, text="Add New Solvent", command=self._add_new_solvent).pack(side=tk.RIGHT, padx=5)
         
         self.search_var.trace_add("write", lambda *args: self.build_grid())
         
@@ -1388,7 +1389,7 @@ class SolventSelectorPopup(tk.Toplevel):
             groups.setdefault(key, []).append((solv_name, data))
             
         if not groups:
-            tk.Label(self.scrollable_frame, text="No Solvents match your search.", font=("Segoe UI", 12), bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
+            tk.Label(self.scrollable_frame, text="No Solvents match your search.",  bg="#ffffff", fg="#555").grid(row=0, column=0, pady=20, padx=20)
             return
             
         sorted_groups = sorted(groups.items())
@@ -1413,7 +1414,7 @@ class SolventSelectorPopup(tk.Toplevel):
             col_frame = tk.Frame(self.scrollable_frame, bg="#ffffff")
             col_frame.grid(row=current_row, column=current_col, sticky="nw", padx=max(2, int(8 * self.scale_factor)), pady=max(2, int(8 * self.scale_factor)))
             
-            ttk.Label(col_frame, text=group_name, font=("Segoe UI", fsize_h, "bold"), foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
+            ttk.Label(col_frame, text=group_name,  foreground="#0b5cab", background="#ffffff").pack(anchor="n", pady=(max(1, int(5 * self.scale_factor)), 2))
             ttk.Separator(col_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, max(1, int(6 * self.scale_factor))))
             
             items.sort(key=lambda x: x[0].lower())
@@ -1452,16 +1453,16 @@ class SolventSelectorPopup(tk.Toplevel):
                 inner.bind("<Button-1>", click_handler)
                 inner.bind("<Button-3>", right_click_handler)
                 
-                lbl = tk.Label(inner, text=solv_name, font=("Segoe UI", fsize_t, "bold"), bg=bg_color, fg="#0f172a")
+                lbl = tk.Label(inner, text=solv_name,  bg=bg_color, fg="#0f172a")
                 lbl.pack(anchor="w")
                 lbl.bind("<Button-1>", click_handler)
                 lbl.bind("<Button-3>", right_click_handler)
                 
                 if data.get('custom_block'):
-                    sub = tk.Label(inner, text="Custom Block Defined", font=("Segoe UI", fsize_s), bg=bg_color, fg="#475569")
+                    sub = tk.Label(inner, text="Custom Block Defined",  bg=bg_color, fg="#475569")
                 else:
                     # Provide an empty label to maintain consistent height with functional popup
-                    sub = tk.Label(inner, text=" ", font=("Segoe UI", fsize_s), bg=bg_color)
+                    sub = tk.Label(inner, text=" ",  bg=bg_color)
                 
                 sub.pack(anchor="w", side=tk.BOTTOM, pady=(max(1, int(2 * self.scale_factor)), 0))
                 sub.bind("<Button-1>", click_handler)
@@ -1494,7 +1495,7 @@ class SolventSelectorPopup(tk.Toplevel):
         ttk.Checkbutton(block_frame, text="Define Custom Block", variable=custom_block_var, command=lambda: toggle_block()).pack(anchor="w")
         
         text_frame = ttk.Frame(block_frame)
-        txt_block = tk.Text(text_frame, height=10, width=50, font=("Consolas", 10))
+        txt_block = tk.Text(text_frame, height=10, width=50)
         txt_block.pack(fill=tk.BOTH, expand=True)
         if data.get("custom_block"):
             txt_block.insert("1.0", data["custom_block"])
@@ -1888,9 +1889,6 @@ class InputCreatorModule5:
     def get_name(self):
         return "Input Creator"
 
-    def get_icon(self):
-        return "⚙️"
-
     def activate(self):
         self.frame.pack(fill=tk.BOTH, expand=True)
         self._apply_default_layout_on_activate()
@@ -1976,7 +1974,7 @@ class InputCreatorModule5:
         )
         self.subproject_combo.pack(side=tk.LEFT, padx=(0, 8))
         self.subproject_combo.bind("<<ComboboxSelected>>", self._on_project_selected)
-        ttk.Button(pf, text="Save current…", command=self._save_project_interactive).pack(
+        ttk.Button(pf, text="Save current...", command=self._save_project_interactive).pack(
             side=tk.LEFT, padx=2
         )
         ttk.Button(pf, text="Delete sub", command=self._delete_project_interactive).pack(
@@ -1988,14 +1986,13 @@ class InputCreatorModule5:
         ttk.Label(
             pf,
             text="Stores all tabs, geometry, previews, constraints, and file picker paths.",
-            font=("Segoe UI", 8),
+            
         ).pack(side=tk.LEFT, padx=(12, 0))
 
         header_frame = ttk.Frame(main)
         header_frame.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(header_frame, text="Input & Script Generator",
-                  font=("Segoe UI", 16, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header_frame, text="Input & Script Generator").pack(side=tk.LEFT)
         
         ttk.Button(header_frame, text="Batch Process", command=self._open_batch_processor).pack(side=tk.LEFT, padx=(15, 5))
         tools_btn = ttk.Menubutton(header_frame, text="Data Tools")
@@ -2009,7 +2006,7 @@ class InputCreatorModule5:
         switches_f.pack(side=tk.RIGHT)
 
         import webbrowser
-        ttk.Button(switches_f, text="📺 Watch Tutorial", command=lambda: webbrowser.open("https://youtu.be/DGfbHzG0zwc?si=qmIuWWVuD4vQM2-P")).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(switches_f, text="Watch Tutorial", command=lambda: webbrowser.open("https://youtu.be/DGfbHzG0zwc?si=qmIuWWVuD4vQM2-P")).pack(side=tk.RIGHT, padx=5)
 
         container = ttk.PanedWindow(main, orient=tk.HORIZONTAL)
         container.pack(fill=tk.BOTH, expand=True)
@@ -2113,7 +2110,7 @@ class InputCreatorModule5:
         self.xtb_process = None
         self.xtb_queue = None
         self.xtb_folder_var = tk.StringVar(
-            value="xTB output folder: (run a job to see path — project-local external_modules/xtb/xtb_runs/xtb_run_…)"
+            value="xTB output folder: (run a job to see path — project-local external_modules/xtb/xtb_runs/xtb_run_...)"
         )
 
         # Solvent & Environment
@@ -2142,6 +2139,10 @@ class InputCreatorModule5:
         self.mpi_path = tk.StringVar(value="/apps/libs/openmpi/4.1.1")
         self.xtb_module = tk.StringVar(value="")
         self.xtb_path = tk.StringVar(value="")
+        self._master_paths_prompted = False
+        self._master_paths_file = ""
+        self._master_paths = {"version": 1, "paths": {"ORCA_ROOT": "", "ESPRESSO_ROOT": ""}, "systems": {}}
+        self._load_master_paths(prompt_if_broken=False)
 
         # -------- LEFT COLUMN: settings + geometry (no viewer here) --------
         # -------- PANED WINDOW --------
@@ -2232,9 +2233,9 @@ class InputCreatorModule5:
         def section(parent, title, tooltip=None):
             f = ttk.Frame(parent)
             f.pack(anchor="w", pady=(10, 2))
-            ttk.Label(f, text=title, font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT)
+            ttk.Label(f, text=title).pack(side=tk.LEFT)
             if tooltip:
-                info = tk.Label(f, text=" ⓘ", font=("Segoe UI", 10), fg="#0284c7", cursor="question_arrow")
+                info = tk.Label(f, text=" ",  fg="#0284c7", cursor="question_arrow")
                 info.pack(side=tk.LEFT)
                 FloatingTooltip(info, tooltip)
                 self.beginner_info_icons.append(info)
@@ -2243,7 +2244,7 @@ class InputCreatorModule5:
             f = ttk.Frame(parent)
             f.pack(anchor="w", pady=pady)
             ttk.Label(f, text=text).pack(side=tk.LEFT)
-            info = tk.Label(f, text=" ⓘ", font=("Segoe UI", 10), fg="#0284c7", cursor="question_arrow")
+            info = tk.Label(f, text=" ",  fg="#0284c7", cursor="question_arrow")
             info.pack(side=tk.LEFT)
             FloatingTooltip(info, tooltip_text)
             self.beginner_info_icons.append(info)
@@ -2271,7 +2272,7 @@ class InputCreatorModule5:
         self.semi_method_note = ttk.Label(
             self.semi_frame,
             text="ORCA xTB keywords require ORCA 6.0+.",
-            font=("Segoe UI", 8, "italic"),
+            
             foreground="#c87000",
         )
         self.semi_method_note.pack(side=tk.LEFT)
@@ -2281,7 +2282,7 @@ class InputCreatorModule5:
         ttk.Label(self.spin_frame, text="Spin configuration:", width=18).pack(side=tk.LEFT)
         self.spin_cb = ttk.Combobox(self.spin_frame, textvariable=self.spin_state, state="readonly", width=42)
         self.spin_cb.pack(side=tk.LEFT, expand=False)
-        ttk.Button(self.spin_frame, text="💡 Auto-Recommend", command=self._auto_recommend_spin).pack(side=tk.LEFT, padx=(5,0))
+        ttk.Button(self.spin_frame, text="Auto-Recommend", command=self._auto_recommend_spin).pack(side=tk.LEFT, padx=(5,0))
         
         def _on_spin_change(*args):
             v = self.spin_state.get().split()[0]
@@ -2314,10 +2315,10 @@ class InputCreatorModule5:
             top.transient(self.parent)
             top.grab_set()
 
-            ttk.Label(top, text="Raw Input Template:", font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=10, pady=(10, 2))
+            ttk.Label(top, text="Raw Input Template:").pack(anchor="w", padx=10, pady=(10, 2))
             ttk.Label(top, text="Modify the standard generated input below. When saved, it will become a Custom Job Type.", foreground="#64748b").pack(anchor="w", padx=10, pady=(0, 5))
             
-            text_area = tk.Text(top, height=15, font=("Consolas", 10))
+            text_area = tk.Text(top, height=15)
             text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
             text_area.insert("1.0", raw_inp)
 
@@ -2357,7 +2358,7 @@ class InputCreatorModule5:
             ttk.Button(btn_f, text="Save", command=_save).pack(side=tk.RIGHT, padx=(5, 0))
             ttk.Button(btn_f, text="Discard", command=_discard).pack(side=tk.RIGHT)
 
-        self.btn_edit_job = ttk.Button(task_f, text="✎ Edit", width=6, command=_edit_current_job_type)
+        self.btn_edit_job = ttk.Button(task_f, text="Edit", width=6, command=_edit_current_job_type)
         self.btn_edit_job.pack(side=tk.LEFT, padx=(5, 0))
 
         self.btn_manage_custom_jobs = ttk.Button(task_f, text="Custom Jobs...", command=self._open_custom_jobs_manager)
@@ -2402,7 +2403,7 @@ class InputCreatorModule5:
         ttk.Label(
             self.goat_frame,
             text="GOAT is supported in ORCA 6.0 and above.",
-            font=("Segoe UI", 8),
+            
             foreground="#475569",
         ).pack(anchor="w")
 
@@ -2471,13 +2472,13 @@ class InputCreatorModule5:
         # Orbital Swapping
         self.orbital_swapping_frame = ttk.Frame(self.job_opt_frame)
         ttk.Label(self.orbital_swapping_frame, text="Orbital Swapping Pairs (Orb1, Orb2, Angle):").pack(side=tk.TOP, anchor="w")
-        self.orbital_swap_txt = tk.Text(self.orbital_swapping_frame, height=4, width=30, font=("Consolas", 9))
+        self.orbital_swap_txt = tk.Text(self.orbital_swapping_frame, height=4, width=30)
         self.orbital_swap_txt.insert("1.0", "    {96, 57, 90}\n    {97, 63, 90}")
         self.orbital_swap_txt.pack(side=tk.TOP, anchor="w", pady=(2,0))
 
         # Scan
         self.scan_opts_frame = ttk.Frame(self.job_opt_frame)
-        scan_warn_lbl = ttk.Label(self.scan_opts_frame, text="Note: ORCA uses 0-based atom numbering (first atom = 0).", font=("Segoe UI", 8, "italic"), foreground="#475569")
+        scan_warn_lbl = ttk.Label(self.scan_opts_frame, text="Note: ORCA uses 0-based atom numbering (first atom = 0).",  foreground="#475569")
         scan_warn_lbl.pack(side=tk.TOP, anchor="w", pady=(0, 2))
         self.beginner_labels_top.append(scan_warn_lbl)
         
@@ -2496,7 +2497,7 @@ class InputCreatorModule5:
         self.scan_e2 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a2, width=3)
         self.scan_e3 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a3, width=3)
         self.scan_e4 = ttk.Entry(self.scan_atoms_frame, textvariable=self.scan_a4, width=3)
-        ttk.Button(self.scan_inputs_row, text="Pick atoms…", command=self._pick_scan_atoms).pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Button(self.scan_inputs_row, text="Pick atoms...", command=self._pick_scan_atoms).pack(side=tk.LEFT, padx=(8, 0))
         
         ttk.Label(self.scan_inputs_row_2, text="Start (Å/deg):").pack(side=tk.LEFT)
         ttk.Entry(self.scan_inputs_row_2, textvariable=self.scan_start, width=6).pack(side=tk.LEFT, padx=(2, 8))
@@ -2507,7 +2508,7 @@ class InputCreatorModule5:
 
         # Constrained Opt builder
         self.const_opts_frame = ttk.Frame(self.job_opt_frame)
-        const_warn_lbl = ttk.Label(self.const_opts_frame, text="Note: ORCA uses 0-based atom numbering (first atom = 0).", font=("Segoe UI", 8, "italic"), foreground="#475569")
+        const_warn_lbl = ttk.Label(self.const_opts_frame, text="Note: ORCA uses 0-based atom numbering (first atom = 0).",  foreground="#475569")
         const_warn_lbl.pack(side=tk.TOP, anchor="w", pady=(0, 2))
         self.beginner_labels_top.append(const_warn_lbl)
         self.const_rows_frame = ttk.Frame(self.const_opts_frame)
@@ -2545,10 +2546,10 @@ class InputCreatorModule5:
                 if cv in self.constraint_rows:
                     self.constraint_rows.remove(cv)
             ttk.Button(row_f, text="Pick", width=5, command=lambda cur=cv: self._pick_constraint_atoms(cur)).pack(side=tk.LEFT, padx=(3, 0))
-            ttk.Button(row_f, text="-", width=2, command=_del_row).pack(side=tk.LEFT, padx=5)
+            ttk.Button(row_f, text="Delete", width=2, command=_del_row).pack(side=tk.LEFT, padx=5)
             self.constraint_rows.append(cv)
 
-        ttk.Button(self.const_opts_frame, text="+ Add Constraint", command=_add_constraint).pack(side=tk.TOP, anchor="w", pady=(5,0))
+        ttk.Button(self.const_opts_frame, text="Add Constraint", command=_add_constraint).pack(side=tk.TOP, anchor="w", pady=(5,0))
         self._add_constraint_ui = _add_constraint
 
         self.neb_frame = ttk.LabelFrame(self.job_opt_frame, text="NEB-TS pathway", padding=(6, 4))
@@ -2556,20 +2557,20 @@ class InputCreatorModule5:
         neb_r1.pack(fill=tk.X, pady=(0, 4))
         ttk.Label(neb_r1, text="NEB images (Nimages):").pack(side=tk.LEFT)
         ttk.Entry(neb_r1, textvariable=self.neb_nimages, width=6).pack(side=tk.LEFT, padx=(4, 12))
-        ttk.Label(neb_r1, text="Reactant = coordinates in the Geometry tab.", font=("Segoe UI", 8)).pack(side=tk.LEFT)
+        ttk.Label(neb_r1, text="Reactant = coordinates in the Geometry tab.").pack(side=tk.LEFT)
         neb_r2 = ttk.Frame(self.neb_frame)
         neb_r2.pack(fill=tk.X, pady=(0, 4))
         ttk.Label(neb_r2, text="Product (end):").pack(side=tk.LEFT)
         ttk.Entry(neb_r2, textvariable=self.neb_product_path, width=36).pack(
             side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 4)
         )
-        ttk.Button(neb_r2, text="Browse…", command=self._browse_neb_product).pack(side=tk.LEFT, padx=2)
-        ttk.Button(neb_r2, text="Paste / edit…", command=self._open_neb_product_editor).pack(side=tk.LEFT, padx=2)
+        ttk.Button(neb_r2, text="Browse...", command=self._browse_neb_product).pack(side=tk.LEFT, padx=2)
+        ttk.Button(neb_r2, text="Paste / edit...", command=self._open_neb_product_editor).pack(side=tk.LEFT, padx=2)
 
         ttk.Label(
             self.neb_frame,
             text="When saving, the product XYZ will automatically be saved as 'neb_product.xyz' alongside the input file.",
-            font=("Segoe UI", 8),
+            
             foreground="#475569",
         ).pack(anchor="w", pady=(4, 0))
 
@@ -2789,7 +2790,7 @@ class InputCreatorModule5:
         self.dft_placeholder.pack(fill=tk.X)
         self.dft_frame = ttk.Frame(self.dft_placeholder)
         
-        ttk.Label(self.dft_frame, text="Selected Theoretical Model", font=("Segoe UI", 10)).pack(anchor="w", pady=(5,2))
+        ttk.Label(self.dft_frame, text="Selected Theoretical Model").pack(anchor="w", pady=(5,2))
         
         def _open_functional_popup():
             def _on_sel(func_str):
@@ -2809,7 +2810,7 @@ class InputCreatorModule5:
         self.btn_select_functional = tk.Button(
             self.dft_frame, text=f"{self.method.get()} ▾",
             bg="#f8fafc", fg="#0284c7", activebackground="#f1f5f9", activeforeground="#0369a1",
-            font=("Segoe UI", 14, "bold"), relief=tk.GROOVE, bd=2, pady=6, cursor="hand2",
+             relief=tk.GROOVE, bd=2, pady=6, cursor="hand2",
             command=_open_functional_popup
         )
         self.btn_select_functional.pack(fill=tk.X, pady=(4, 12))
@@ -2945,7 +2946,7 @@ class InputCreatorModule5:
         self.btn_select_basis = tk.Button(
             self.basis_frame, text=f"{self.basis.get()} ▾",
             bg="#f8fafc", fg="#0284c7", activebackground="#f1f5f9", activeforeground="#0369a1",
-            font=("Segoe UI", 14, "bold"), relief=tk.GROOVE, bd=2, pady=6, cursor="hand2",
+             relief=tk.GROOVE, bd=2, pady=6, cursor="hand2",
             command=_open_basis_popup
         )
         self.btn_select_basis.pack(fill=tk.X, pady=(4, 12))
@@ -2959,7 +2960,7 @@ class InputCreatorModule5:
         
         self.split_switch = ModernSwitch(split_toggle_frame, command=lambda: self._toggle_split_basis_cb())
         self.split_switch.pack(side=tk.LEFT)
-        ttk.Label(split_toggle_frame, text="Split Basis Set (By Atom/Element)", font=("Segoe UI", 10, "bold"), foreground="#0284c7").pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(split_toggle_frame, text="Split Basis Set (By Atom/Element)",  foreground="#0284c7").pack(side=tk.LEFT, padx=(5, 0))
         
         self.split_container = ttk.Frame(self.basis_frame)
         ttk.Label(self.split_container, text="Target (e.g. Fe, or 1,2)").pack(anchor="w")
@@ -2967,7 +2968,7 @@ class InputCreatorModule5:
         self.split_rows_frame = ttk.Frame(self.split_container)
         self.split_rows_frame.pack(fill=tk.X)
         
-        ttk.Button(self.split_container, text="+ Add Split Assignment", command=lambda: self._add_split_row_cb()).pack(anchor="w", pady=(2, 0))
+        ttk.Button(self.split_container, text="Add Split Assignment", command=lambda: self._add_split_row_cb()).pack(anchor="w", pady=(2, 0))
         
         def _add_split_row(target="", cmd_type="newgto", val="def2-TZVP"):
             row_frame = ttk.Frame(self.split_rows_frame)
@@ -2993,7 +2994,7 @@ class InputCreatorModule5:
                 row_frame.destroy()
                 self.split_rows = [r for r in self.split_rows if r["frame"] != row_frame]
                 
-            ttk.Button(row_frame, text="✖", width=3, command=_remove).pack(side=tk.LEFT, padx=2)
+            ttk.Button(row_frame, text="Remove", width=3, command=_remove).pack(side=tk.LEFT, padx=2)
             self.split_rows.append({"frame": row_frame, "target": tgt_var, "cmd": cmd_var, "val": val_var, "target_cb": tgt_cb})
             
         self._add_split_row_cb = _add_split_row
@@ -3014,7 +3015,7 @@ class InputCreatorModule5:
 
         self.approx_warn_frame = ttk.Frame(self.approx_section_frame)
         self.approx_warning_var = tk.StringVar()
-        self.approx_warning_lbl = ttk.Label(self.approx_warn_frame, textvariable=self.approx_warning_var, foreground="#ff4d4d", font=("Segoe UI", 9, "bold"))
+        self.approx_warning_lbl = ttk.Label(self.approx_warn_frame, textvariable=self.approx_warning_var, foreground="#ff4d4d")
         self.approx_warning_lbl.pack(anchor="w")
 
         grid_f = tk.Frame(self.approx_section_frame, bg="#ffffff")
@@ -3061,28 +3062,28 @@ class InputCreatorModule5:
 
             if ri != "None":
                 if "Hybrid" in func_data and ri == "RI":
-                    w.append("💡 Recommendation: Hybrid functionals strongly prefer RIJCOSX instead of RI")
+                    w.append("Recommendation: Hybrid functionals strongly prefer RIJCOSX instead of RI")
                 elif "GGA" in func_data and "Hybrid" not in func_data and ri == "RIJCOSX":
-                    w.append("💡 Recommendation: Standard GGA functionally optimally use RI")
+                    w.append("Recommendation: Standard GGA functionally optimally use RI")
             
             if "ma-def2" in bas and ri != "None" and aux != "AutoAux":
-                w.append("💡 Recommendation: ma-def2 diffuse basis requires AutoAux auxiliary basis")
+                w.append("Recommendation: ma-def2 diffuse basis requires AutoAux auxiliary basis")
                 
             if "cc-p" in bas and "aug-" not in bas and ri != "None" and aux == "def2/J":
-                w.append("⚠️ Warning: Correlation consistent basis needs /C or /JK aux basis")
+                w.append("Warning: Correlation consistent basis needs /C or /JK aux basis")
                 
             if is_minnesota:
                 if disp != "None" and "D3" in disp:
-                    w.append("💡 Recommendation: Minnesota functionals intrinsically account for dispersion, D3BJ is generally not required.")
+                    w.append("Recommendation: Minnesota functionals intrinsically account for dispersion, D3BJ is generally not required.")
                 if grid not in ["defgrid3"]:
-                    w.append("⚠️ Warning: Minnesota functionals heavily depend on the integration grid. defgrid3 is highly recommended.")
+                    w.append("Warning: Minnesota functionals heavily depend on the integration grid. defgrid3 is highly recommended.")
             
             if ri != "None" and aux == "None":
-                w.append("⚠️ Missing Auxiliary Basis for RI Approximation!")
+                w.append("Missing Auxiliary Basis for RI Approximation!")
             elif "def2/J" in aux and "def2" not in bas:
-                w.append("⚠️ def2/J auxiliary basis requires a def2 family main basis.")
+                w.append("def2/J auxiliary basis requires a def2 family main basis.")
             elif "3c" in func_data and (disp != "None" or ri != "None"):
-                w.append("⚠️ Composite '3c' methods inherently contain dispersion & RI. Turn off.")
+                w.append("Composite '3c' methods inherently contain dispersion & RI. Turn off.")
                 
             if w:
                 self.approx_warning_var.set("\n".join(w))
@@ -3109,7 +3110,7 @@ class InputCreatorModule5:
         
         self.cm_warn_frame = ttk.Frame(tab_general)
         self.cm_warning_var = tk.StringVar()
-        self.cm_warning_lbl = ttk.Label(self.cm_warn_frame, textvariable=self.cm_warning_var, foreground="#ff4d4d", font=("Segoe UI", 9, "bold"))
+        self.cm_warning_lbl = ttk.Label(self.cm_warn_frame, textvariable=self.cm_warning_var, foreground="#ff4d4d")
         self.cm_warning_lbl.pack(anchor="w")
 
         ttk.Label(tab_general, text="Job Name:").pack(anchor="w", pady=(5,0))
@@ -3175,7 +3176,7 @@ class InputCreatorModule5:
         ttk.Entry(grid_deps, textvariable=self.moinp_file, width=32).grid(row=0, column=1, padx=(5,2))
         ttk.Button(grid_deps, text="Browse", width=7, command=self._browse_moinp_file).grid(row=0, column=2)
         
-        self.casscf_gbw_info = ttk.Label(grid_deps, text="(i)", font=("Segoe UI", 10, "bold"), foreground="#0284c7", cursor="hand2")
+        self.casscf_gbw_info = ttk.Label(grid_deps, text="(i)",  foreground="#0284c7", cursor="hand2")
         FloatingTooltip(self.casscf_gbw_info, "Please insert the swapped orbitals GBW file for CASSCF.")
         # Trigger an initial update to show/hide based on current task
         self._refresh_task_ui()
@@ -3191,7 +3192,7 @@ class InputCreatorModule5:
         # --- TAB 4: HPC & RESOURCES ---
         self.saved_machine_frame = ttk.Frame(tab_hpc)
         self.saved_machine_frame.pack(fill=tk.X, pady=(10, 5))
-        ttk.Label(self.saved_machine_frame, text="Saved Machine:", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(self.saved_machine_frame, text="Saved Machine:").pack(side=tk.LEFT, padx=(0, 5))
         self.saved_machine_var = tk.StringVar(value="None")
         self.saved_machine_combo = ttk.Combobox(
             self.saved_machine_frame, textvariable=self.saved_machine_var, state="readonly", width=25
@@ -3216,12 +3217,12 @@ class InputCreatorModule5:
         status_row.pack(fill=tk.X)
         self.local_orca_light_var = tk.StringVar(value="○")
         self.local_orca_status_var = tk.StringVar(value="Select Local mode to auto-check ORCA installation.")
-        ttk.Label(status_row, textvariable=self.local_orca_light_var, font=("Segoe UI", 12, "bold")).pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Label(status_row, textvariable=self.local_orca_light_var).pack(side=tk.LEFT, padx=(0, 6))
         
         self.local_orca_version_combo = ttk.Combobox(status_row, state="readonly", width=35)
         self.local_orca_version_combo.pack_forget()
         
-        self.local_orca_status_lbl = ttk.Label(status_row, textvariable=self.local_orca_status_var, font=("Segoe UI", 9))
+        self.local_orca_status_lbl = ttk.Label(status_row, textvariable=self.local_orca_status_var)
         self.local_orca_status_lbl.pack(side=tk.LEFT, fill=tk.X)
         
         def _show_orca_citation(event=None):
@@ -3235,7 +3236,7 @@ class InputCreatorModule5:
             )
             messagebox.showinfo("ORCA Citation", msg, parent=self.frame)
 
-        self.lbl_orca_citation = ttk.Label(status_row, text="(i)", font=("Segoe UI", 9, "bold"), foreground="#0055D4", cursor="hand2")
+        self.lbl_orca_citation = ttk.Label(status_row, text="(i)",  foreground="#0055D4", cursor="hand2")
         self.lbl_orca_citation.pack(side=tk.LEFT, padx=(4, 0))
         self.lbl_orca_citation.bind("<Button-1>", _show_orca_citation)
 
@@ -3243,13 +3244,13 @@ class InputCreatorModule5:
         spacer.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.btn_orca_recheck = ttk.Button(status_row, text="Re-check", command=self._update_local_orca_status)
         self.btn_orca_recheck.pack(side=tk.RIGHT)
-        self.btn_orca_quick_search = ttk.Button(status_row, text="Quick search drives", command=self._run_quick_orca_search)
+        self.btn_orca_quick_search = ttk.Button(status_row, text="Edit paths.txt", command=self._open_master_paths_file)
         self.btn_orca_quick_search.pack(side=tk.RIGHT, padx=(0, 6))
         self.btn_orca_path_help = ttk.Button(status_row, text="Path setup help", command=self._show_orca_path_setup_help)
         self.btn_orca_path_help.pack(side=tk.RIGHT, padx=(0, 6))
         self.local_orca_path_var = tk.StringVar(value="")
         self.local_orca_path_lbl = ttk.Label(
-            self.local_orca_status_frame, textvariable=self.local_orca_path_var, font=("Consolas", 8), wraplength=760, justify="left"
+            self.local_orca_status_frame, textvariable=self.local_orca_path_var,  wraplength=760, justify="left"
         )
         self.local_orca_path_lbl.pack(anchor="w", pady=(4, 0))
         self.local_orca_help_frame = ttk.Frame(self.local_orca_status_frame)
@@ -3257,7 +3258,7 @@ class InputCreatorModule5:
         ttk.Label(
             self.local_orca_help_frame,
             text="Install guide (if ORCA is missing):",
-            font=("Segoe UI", 9, "italic"),
+            
         ).pack(side=tk.LEFT, padx=(0, 8))
         ttk.Button(
             self.local_orca_help_frame,
@@ -3325,7 +3326,7 @@ class InputCreatorModule5:
         self.nodes_entry.grid(row=0, column=3, padx=5)
         
         self.local_hw_hint_var = tk.StringVar(value="")
-        self.local_hw_hint_lbl = ttk.Label(grid_res, textvariable=self.local_hw_hint_var, font=("Segoe UI", 8, "italic"))
+        self.local_hw_hint_lbl = ttk.Label(grid_res, textvariable=self.local_hw_hint_var)
         self.local_hw_hint_lbl.grid(row=1, column=0, columnspan=4, sticky="w", pady=(4, 0))
         self.local_hw_auto_btn = ttk.Button(grid_res, text="Auto Recommend (Local)", command=self._auto_recommend_local_resources)
         self.local_hw_auto_btn.grid(row=2, column=0, columnspan=4, sticky="w", pady=(2, 0))
@@ -3342,7 +3343,7 @@ class InputCreatorModule5:
         self.time_entry.grid(row=0, column=3, padx=5, pady=2)
         
         self.machine_info_var = tk.StringVar(value="")
-        self.machine_info_lbl = ttk.Label(grid_hpc, textvariable=self.machine_info_var, font=("Segoe UI", 9, "italic"), foreground="#007ACC")
+        self.machine_info_lbl = ttk.Label(grid_hpc, textvariable=self.machine_info_var,  foreground="#007ACC")
         self.machine_info_lbl.grid(row=1, column=0, columnspan=4, sticky="w", pady=(5, 0))
         
         def _update_machine_info_text():
@@ -3471,11 +3472,11 @@ class InputCreatorModule5:
         )
         self.btn_local_visualize_out.pack(side=tk.LEFT)
         ttk.Button(local_btn_row_2, text="Clear Log", command=self._clear_local_job_log).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(local_btn_row_2, text="📜 History", command=self._show_job_history_dialog).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(local_btn_row_2, text="History", command=self._show_job_history_dialog).pack(side=tk.LEFT, padx=(6, 0))
         self.local_job_status_var = tk.StringVar(value="Ready for local submission.")
-        ttk.Label(local_btn_row_2, textvariable=self.local_job_status_var, font=("Segoe UI", 9, "italic")).pack(side=tk.RIGHT)
+        ttk.Label(local_btn_row_2, textvariable=self.local_job_status_var).pack(side=tk.RIGHT)
 
-        self.local_job_log_txt = tk.Text(self.local_submit_frame, height=14, width=1, font=("Consolas", 9), bg="#1e1e1e", fg="#d9ffd9")
+        self.local_job_log_txt = tk.Text(self.local_submit_frame, height=14, width=1,  bg="#1e1e1e", fg="#d9ffd9")
         self.local_job_log_txt.pack(fill=tk.BOTH, expand=True)
         self.local_job_log_txt.insert("1.0", "Local submission log will appear here.\n")
 
@@ -3495,20 +3496,20 @@ class InputCreatorModule5:
         right_ctrl = ttk.Frame(top_split)
         right_ctrl.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
 
-        ttk.Button(right_ctrl, text="ℹ Cite xTB", command=self._show_xtb_citation).pack(side=tk.TOP, anchor="e", pady=(0, 4))
-        ttk.Button(right_ctrl, text="⚙ xTB Settings", command=self._open_xtb_settings).pack(side=tk.TOP, anchor="e", pady=(0, 4))
+        ttk.Button(right_ctrl, text="Cite xTB", command=self._show_xtb_citation).pack(side=tk.TOP, anchor="e", pady=(0, 4))
+        ttk.Button(right_ctrl, text="xTB Settings", command=self._open_xtb_settings).pack(side=tk.TOP, anchor="e", pady=(0, 4))
         ttk.Label(
             right_ctrl,
             text="xTB developed by Prof. Stefan Grimme and coworkers.",
-            font=("Segoe UI", 8, "italic"),
+            
             foreground="#6b7280"
         ).pack(side=tk.TOP, anchor="e")
 
         xtb_warn = ttk.Label(
             left_ctrl,
-            text="⚠ xTB is a semiempirical tight-binding method \n"
+            text="xTB is a semiempirical tight-binding method \n"
                  "    Use it for quick screening / geometry pre-check before full DFT.",
-            font=("Segoe UI", 9), foreground="#c87000", wraplength=700, justify="left",
+             foreground="#c87000", wraplength=700, justify="left",
         )
         xtb_warn.pack(anchor="w", pady=(0, 12))
 
@@ -3517,9 +3518,9 @@ class InputCreatorModule5:
 
         self.btn_run_xtb = tk.Button(
             run_btn_frame, 
-            text="▶ Run xTB Preview", 
+            text="Run xTB Preview", 
             command=self._start_xtb_job,
-            bg="#0284c7", fg="#ffffff", font=("Segoe UI", 11, "bold"), 
+            bg="#0284c7", fg="#ffffff",  
             activebackground="#0369a1", activeforeground="#ffffff",
             relief="flat", padx=16, pady=4, cursor="hand2"
         )
@@ -3548,7 +3549,7 @@ class InputCreatorModule5:
             width=5,
         )
 
-        self.xtb_job_label = ttk.Label(run_btn_frame, text="", font=("Segoe UI", 9, "italic"))
+        self.xtb_job_label = ttk.Label(run_btn_frame, text="")
         self.xtb_job_label.pack(side=tk.LEFT, padx=(0, 12))
 
         xtb_panes = ttk.PanedWindow(tab_xtb, orient=tk.HORIZONTAL)
@@ -3566,13 +3567,13 @@ class InputCreatorModule5:
 
         log_top_frame = ttk.Frame(xtb_log_wrap)
         log_top_frame.pack(fill=tk.X)
-        ttk.Label(log_top_frame, text="Live Log Stream:", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT)
+        ttk.Label(log_top_frame, text="Live Log Stream:").pack(side=tk.LEFT)
         self.btn_full_log_xtb = ttk.Button(log_top_frame, text="Open Full Log", command=self._open_xtb_full_log, state=tk.DISABLED)
         self.btn_full_log_xtb.pack(side=tk.LEFT, padx=10)
         
         log_txt_frame = ttk.Frame(xtb_log_wrap)
         log_txt_frame.pack(fill=tk.BOTH, expand=True, pady=(2, 0))
-        self.xtb_log_txt = tk.Text(log_txt_frame, height=10, width=40, font=("Consolas", 9), bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
+        self.xtb_log_txt = tk.Text(log_txt_frame, height=10, width=40,  bg="#1e1e1e", fg="#00ff00", wrap=tk.NONE)
         log_y_scroll = ttk.Scrollbar(log_txt_frame, orient="vertical", command=self.xtb_log_txt.yview)
         log_x_scroll = ttk.Scrollbar(log_txt_frame, orient="horizontal", command=self.xtb_log_txt.xview)
         self.xtb_log_txt.configure(yscrollcommand=log_y_scroll.set, xscrollcommand=log_x_scroll.set)
@@ -3587,7 +3588,7 @@ class InputCreatorModule5:
         xtb_left_notebook.add(xtb_geom_wrap, text="xTB Output Geometry")
         self.xtb_bottom_notebook = xtb_left_notebook
 
-        self.xtb_numbers_txt = tk.Text(xtb_num_wrap, height=10, width=40, font=("Consolas", 9), wrap=tk.NONE)
+        self.xtb_numbers_txt = tk.Text(xtb_num_wrap, height=10, width=40,  wrap=tk.NONE)
         num_y_scroll = ttk.Scrollbar(xtb_num_wrap, orient="vertical", command=self.xtb_numbers_txt.yview)
         num_x_scroll = ttk.Scrollbar(xtb_num_wrap, orient="horizontal", command=self.xtb_numbers_txt.xview)
         self.xtb_numbers_txt.configure(yscrollcommand=num_y_scroll.set, xscrollcommand=num_x_scroll.set)
@@ -3605,7 +3606,7 @@ class InputCreatorModule5:
         )
         self.xtb_numbers_txt.config(state=tk.DISABLED)
 
-        self.xtb_out_geom = tk.Text(xtb_geom_wrap, height=7, width=40, font=("Consolas", 10), wrap=tk.NONE)
+        self.xtb_out_geom = tk.Text(xtb_geom_wrap, height=7, width=40,  wrap=tk.NONE)
         geom_y_scroll = ttk.Scrollbar(xtb_geom_wrap, orient="vertical", command=self.xtb_out_geom.yview)
         geom_x_scroll = ttk.Scrollbar(xtb_geom_wrap, orient="horizontal", command=self.xtb_out_geom.xview)
         self.xtb_out_geom.configure(yscrollcommand=geom_y_scroll.set, xscrollcommand=geom_x_scroll.set)
@@ -3656,7 +3657,7 @@ class InputCreatorModule5:
         self.xtb_scan_plot_title = ttk.Label(
             xtb_graph_tab,
             text="Scan graph will appear here after run.",
-            font=("Segoe UI", 9, "italic"),
+            
         )
         self.xtb_scan_plot_title.pack(anchor="w", pady=(2, 2))
         self.xtb_scan_plot_host = ttk.Frame(xtb_graph_tab)
@@ -3666,7 +3667,7 @@ class InputCreatorModule5:
         xtb_bottom_btns = ttk.Frame(tab_xtb)
         xtb_bottom_btns.pack(pady=(10, 0))
 
-        ttk.Button(xtb_bottom_btns, text="✓ Use Output XYZ in Main Input",
+        ttk.Button(xtb_bottom_btns, text="Use Output XYZ in Main Input",
                    command=self._use_xtb_geom).pack(side=tk.LEFT, padx=5)
 
         self.btn_scan_graph_xtb = ttk.Button(xtb_bottom_btns, text="Show Scan Graph",
@@ -3679,7 +3680,7 @@ class InputCreatorModule5:
         ttk.Label(
             xtb_folder_row,
             textvariable=self.xtb_folder_var,
-            font=("Consolas", 8),
+            
             wraplength=900,
             justify="left",
         ).pack(side=tk.LEFT, fill=tk.X, expand=True, anchor="w")
@@ -3709,7 +3710,7 @@ class InputCreatorModule5:
             "Plain atom lines OK (XYZ header optional). Drop a .xyz file here on Windows/Mac if enabled.\n"
             "Chemcraft/ORCA pasted coords with Unicode minus (–) are normalized automatically.",
         )
-        self.geom = tk.Text(geom_frame, height=11, font=("Consolas", 12), wrap=tk.NONE)
+        self.geom = tk.Text(geom_frame, height=11,  wrap=tk.NONE)
         self.geom.pack(fill=tk.BOTH, expand=True)
         self._geom_wnd_hook_done = False
         try:
@@ -3724,7 +3725,7 @@ class InputCreatorModule5:
                 c = int(self.charge.get())
                 m = int(self.mult.get())
             except ValueError:
-                self.cm_warning_var.set("⚠️ Charge and Multiplicity must be integers")
+                self.cm_warning_var.set("Charge and Multiplicity must be integers")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
@@ -3766,17 +3767,17 @@ class InputCreatorModule5:
                 
             n_e = sum_z - c
             if n_e < 0:
-                self.cm_warning_var.set("⚠️ Charge is too positive for the loaded atoms.")
+                self.cm_warning_var.set("Charge is too positive for the loaded atoms.")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
             if m < 1:
-                self.cm_warning_var.set("⚠️ Multiplicity must be ≥ 1")
+                self.cm_warning_var.set("Multiplicity must be ≥ 1")
                 self.cm_warn_frame.pack(fill=tk.X)
                 return
                 
             if (n_e % 2) != ((m - 1) % 2):
-                self.cm_warning_var.set(f"⚠️ Invalid! {n_e}e⁻ system requires {'ODD' if n_e%2==0 else 'EVEN'} multiplicity.")
+                self.cm_warning_var.set(f"Invalid! {n_e}e⁻ system requires {'ODD' if n_e%2==0 else 'EVEN'} multiplicity.")
                 self.cm_warn_frame.pack(fill=tk.X)
             else:
                 self.cm_warn_frame.pack_forget()
@@ -3886,10 +3887,10 @@ class InputCreatorModule5:
         preview_nb.add(f_inp, text="Input (.inp)")
         preview_nb.add(f_sh, text="Job Script (.sh)")
 
-        self.txt_inp = tk.Text(f_inp, font=("Consolas", 12), wrap=tk.NONE)
+        self.txt_inp = tk.Text(f_inp,  wrap=tk.NONE)
         self.txt_inp.pack(fill=tk.BOTH, expand=True)
 
-        self.txt_sh = tk.Text(f_sh, font=("Consolas", 12), wrap=tk.NONE)
+        self.txt_sh = tk.Text(f_sh,  wrap=tk.NONE)
         self.txt_sh.pack(fill=tk.BOTH, expand=True)
 
         embed_ctrl_frame = ttk.Frame(self.struct_outer)
@@ -3999,7 +4000,7 @@ class InputCreatorModule5:
         top = self.parent.winfo_toplevel()
         app = getattr(top, "_orca_app", None)
         if app and app_theme:
-            self.apply_app_theme(app_theme.build_context(app.theme_mode, app.editor_font_pt))
+            self.apply_app_theme(app_theme.build_context(app.theme_mode))
 
     def _is_global_beginner_mode(self):
         try:
@@ -4021,7 +4022,7 @@ class InputCreatorModule5:
             self._toggle_user_mode_cb()
         if hasattr(self, "_xtb_beginner_primary_btn"):
             self._xtb_beginner_primary_btn.config(
-                text="▶ Get xTB Preview" if is_beginner else "▶ Run xTB Preview"
+                text="Get xTB Preview" if is_beginner else "Run xTB Preview"
             )
         for w in getattr(self, "_xtb_advanced_widgets", ()):
             if w is None:
@@ -4820,7 +4821,7 @@ class InputCreatorModule5:
         ttk.Label(
             body,
             text="Select existing project/sub-project or type new names:",
-            font=("Segoe UI", 10, "bold"),
+            
         ).pack(anchor="w", pady=(0, 8))
 
         row = ttk.Frame(body)
@@ -4834,7 +4835,7 @@ class InputCreatorModule5:
         sub_cb = ttk.Combobox(row, textvariable=sub_var, values=[], state="normal", width=26)
         sub_cb.pack(side=tk.LEFT)
 
-        preview = tk.Listbox(body, height=14, font=("Consolas", 9))
+        preview = tk.Listbox(body, height=14)
         preview.pack(fill=tk.BOTH, expand=True, pady=(8, 8))
 
         def _refresh_preview():
@@ -4982,7 +4983,7 @@ class InputCreatorModule5:
             toast = tk.Toplevel(self.parent)
             toast.overrideredirect(True)
             toast.attributes('-topmost', True)
-            ttk.Label(toast, text=msg, font=("Segoe UI", 11, "bold"), background="#FFF3CD", foreground="#333", padding=8).pack()
+            ttk.Label(toast, text=msg,  background="#FFF3CD", foreground="#333", padding=8).pack()
             toast.update_idletasks()
             w = toast.winfo_width()
             h = toast.winfo_height()
@@ -5007,7 +5008,7 @@ class InputCreatorModule5:
             self.embed_host.config(bg="#2b2b2b")
             self.embed_host.update_idletasks()
             self.embed_host.config(height=360)
-            tk.Label(self.embed_host, text="No structure loaded", bg="#2b2b2b", fg="#777777", font=("Segoe UI", 16)).place(relx=0.5, rely=0.5, anchor="center")
+            tk.Label(self.embed_host, text="No structure loaded", bg="#2b2b2b", fg="#777777").place(relx=0.5, rely=0.5, anchor="center")
         except AttributeError:
             pass
         self._update_embed_detach_button_state()
@@ -5060,10 +5061,10 @@ class InputCreatorModule5:
         msg = f"--- System Analysis ---\nTotal Electrons: {total_electrons}\nCharge: {chg}\nMultiplicity: {mult}\n\n"
         
         if total_electrons % 2 != 0 and mult % 2 != 0:
-            messagebox.showerror("Spin Parity ERROR", msg + "⚠️ An odd number of electrons must have an even multiplicity (Doublet, Quartet, etc.). Please reconsider your input!")
+            messagebox.showerror("Spin Parity ERROR", msg + "An odd number of electrons must have an even multiplicity (Doublet, Quartet, etc.). Please reconsider your input!")
             return
         if total_electrons % 2 == 0 and mult % 2 == 0:
-            messagebox.showerror("Spin Parity ERROR", msg + "⚠️ An even number of electrons must have an odd multiplicity (Singlet, Triplet, etc.). Please reconsider your input!")
+            messagebox.showerror("Spin Parity ERROR", msg + "An even number of electrons must have an odd multiplicity (Singlet, Triplet, etc.). Please reconsider your input!")
             return
             
         th = self.method_type.get()
@@ -5248,120 +5249,247 @@ class InputCreatorModule5:
 
         return hits
 
-    def _detect_local_orca(self, quick_scan=False):
-        candidates = []
-        seen = set()
+    def _workspace_root(self):
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        def _add_candidate(c):
-            c = (c or "").strip()
-            if not c or c in seen:
+    def _master_paths_candidates(self):
+        candidates = [
+            os.path.join(os.getcwd(), "paths.txt"),
+            os.path.join(self._workspace_root(), "paths.txt"),
+        ]
+        unique = []
+        for path in candidates:
+            if path not in unique:
+                unique.append(path)
+        return unique
+
+    def _master_paths_file_path(self):
+        for path in self._master_paths_candidates():
+            if os.path.isfile(path):
+                return path
+        return self._master_paths_candidates()[0]
+
+    def _default_master_paths_data(self):
+        return {
+            "version": 1,
+            "paths": {
+                "ORCA_ROOT": "",
+                "ESPRESSO_ROOT": "",
+            },
+            "systems": {},
+        }
+
+    def _parse_legacy_master_paths_text(self, raw_text):
+        data = self._default_master_paths_data()
+        found = False
+        for line in (raw_text or "").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key in ("ORCA_ROOT", "ESPRESSO_ROOT"):
+                data["paths"][key] = value
+                found = True
+        return data if found else None
+
+    def _normalize_master_paths_data(self, data):
+        if not isinstance(data, dict):
+            return None
+
+        if "paths" not in data and any(k in data for k in ("ORCA_ROOT", "ESPRESSO_ROOT")):
+            data = {
+                "version": data.get("version", 1),
+                "paths": {
+                    "ORCA_ROOT": data.get("ORCA_ROOT", ""),
+                    "ESPRESSO_ROOT": data.get("ESPRESSO_ROOT", ""),
+                },
+                "systems": data.get("systems", {}),
+            }
+
+        paths = data.get("paths")
+        systems = data.get("systems")
+        if not isinstance(paths, dict):
+            return None
+
+        normalized = self._default_master_paths_data()
+        normalized["version"] = int(data.get("version", 1) or 1)
+        normalized["paths"]["ORCA_ROOT"] = str(paths.get("ORCA_ROOT", "") or "").strip()
+        normalized["paths"]["ESPRESSO_ROOT"] = str(paths.get("ESPRESSO_ROOT", "") or "").strip()
+
+        if isinstance(systems, dict):
+            cleaned_systems = {}
+            for system_name, system_data in systems.items():
+                if not isinstance(system_data, dict):
+                    continue
+                cleaned_systems[str(system_name)] = {
+                    "ip_address": str(system_data.get("ip_address", system_data.get("ip", "")) or "").strip(),
+                    "username": str(system_data.get("username", system_data.get("user", "")) or "").strip(),
+                }
+            normalized["systems"] = cleaned_systems
+
+        return normalized
+
+    def _write_master_paths_template(self, path):
+        data = self._default_master_paths_data()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+    def _open_master_paths_file(self):
+        path = self._master_paths_file_path()
+        needs_template = not os.path.isfile(path)
+        if not needs_template:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    needs_template = not f.read().strip()
+            except Exception:
+                needs_template = False
+        if needs_template:
+            try:
+                self._write_master_paths_template(path)
+            except Exception as e:
+                messagebox.showerror("paths.txt", f"Could not create paths.txt:\n{e}")
                 return
-            seen.add(c)
-            candidates.append(c)
-
-        _add_candidate(os.environ.get("ORCA_EXE", ""))
-        _add_candidate(shutil.which("orca.exe") or "")
-        _add_candidate(shutil.which("orca") or "")
-
-        orca_path_val = (self.orca_path.get() or "").strip()
-        if orca_path_val:
-            if os.path.isdir(orca_path_val):
-                exe_name = "orca.exe" if os.name == "nt" else "orca"
-                _add_candidate(os.path.join(orca_path_val, exe_name))
+        try:
+            if os.name == "nt":
+                os.startfile(path)  # type: ignore[attr-defined, unused-ignore]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
             else:
-                _add_candidate(orca_path_val)
+                subprocess.Popen(["xdg-open", path])
+        except Exception as e:
+            messagebox.showerror("paths.txt", f"Could not open paths.txt:\n{e}")
 
-        if quick_scan:
-            for c in self._quick_find_orca_candidates():
-                _add_candidate(c)
+    def _load_master_paths(self, prompt_if_broken=False):
+        path = self._master_paths_file_path()
+        self._master_paths_file = path
+        self._master_paths = self._default_master_paths_data()
+
+        if not os.path.isfile(path):
+            detail = f"paths.txt was not found at:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+        except Exception as e:
+            detail = f"Could not read paths.txt:\n{e}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        if not raw.strip():
+            detail = f"paths.txt is empty:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        parsed = None
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            try:
+                parsed = ast.literal_eval(raw)
+            except Exception:
+                parsed = self._parse_legacy_master_paths_text(raw)
+
+        normalized = self._normalize_master_paths_data(parsed)
+        if not normalized:
+            detail = f"paths.txt is broken or has an unsupported format:\n{path}"
+            if prompt_if_broken:
+                self._prompt_fix_master_paths(detail)
+            return False, detail
+
+        self._master_paths = normalized
+        orca_root = normalized["paths"].get("ORCA_ROOT", "")
+        if orca_root:
+            self.orca_path.set(orca_root)
+        self._master_paths_prompted = False
+        return True, ""
+
+    def _prompt_fix_master_paths(self, detail):
+        if getattr(self, "_master_paths_prompted", False):
+            return
+        self._master_paths_prompted = True
+        if messagebox.askyesno("Broken paths", f"{detail}\n\nWould you want to fix the paths now?"):
+            self._open_master_paths_file()
+
+    def _detect_local_orca(self, quick_scan=False):
+        del quick_scan
+
+        ok, detail = self._load_master_paths(prompt_if_broken=False)
+        if not ok:
+            return False, "", "", detail, []
+
+        orca_root = (self._master_paths.get("paths", {}) or {}).get("ORCA_ROOT", "")
+        if not orca_root:
+            return False, "", "", "paths.txt does not define ORCA_ROOT.", []
+
+        orca_root = os.path.expanduser(os.path.expandvars(orca_root))
+        if not os.path.isabs(orca_root):
+            orca_root = os.path.abspath(os.path.join(os.path.dirname(self._master_paths_file or self._workspace_root()), orca_root))
+        if os.path.isdir(orca_root):
+            exe_name = "orca.exe" if os.name == "nt" else "orca"
+            exe = os.path.join(orca_root, exe_name)
+        else:
+            exe = orca_root
+
+        if not os.path.exists(exe):
+            return False, "", "", f"ORCA_ROOT points to a missing path:\n{orca_root}", []
 
         version_patterns = [
             r"Program Version\s+([0-9][0-9A-Za-z.\-_]*)",
             r"\bORCA[^0-9]*([0-9][0-9A-Za-z.\-_]*)",
             r"\bVersion[:\s]+([0-9][0-9A-Za-z.\-_]*)",
         ]
+        result = self._try_orca_candidate(exe, version_patterns)
+        if result:
+            found_exe, version, _out = result
+            return True, found_exe, version, "", [(found_exe, version)]
 
-        valid_versions = []
-        for cand in candidates:
-            result = self._try_orca_candidate(cand, version_patterns)
-            if result:
-                found_exe, version, out = result
-                valid_versions.append((found_exe, version))
-
-        if valid_versions:
-            valid_versions.sort(key=lambda x: x[1], reverse=True)
-            seen_exes = set()
-            unique_versions = []
-            for ex, ver in valid_versions:
-                if ex not in seen_exes:
-                    seen_exes.add(ex)
-                    unique_versions.append((ex, ver))
-            return True, unique_versions[0][0], unique_versions[0][1], "", unique_versions
-
-        msg = (
-            "ORCA executable was not detected in PATH / ORCA_EXE / ORCA path field.\n"
-            "Install ORCA, then add it to system PATH or set ORCA_EXE.\n"
-            "Tip: use 'Quick search drives' to locate an existing ORCA installation."
-        )
-        return False, "", "", msg, []
+        return True, exe, "configured", "", [(exe, "configured")]
 
     def _run_quick_orca_search(self):
-        if not getattr(self, "local_orca_status_var", None):
-            return
-        self.local_orca_light_var.set("🟡")
-        self.local_orca_status_var.set("Searching local drives for ORCA executable... please wait.")
-        self.local_orca_path_var.set("Quick scan running (limited depth for speed).")
-        try:
-            self.frame.update_idletasks()
-        except Exception:
-            pass
-        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=True)
-        if ok:
-            self._update_orca_combobox_ui(all_versions)
-            self.local_orca_light_var.set("🟢")
-            self.local_orca_status_var.set(f"ORCA found by quick search. Version: {version}")
-            self.local_orca_path_var.set(f"Executable: {exe}")
-            try:
-                self.orca_path.set(os.path.dirname(exe))
-            except Exception:
-                pass
-            try:
-                self.local_orca_help_frame.pack_forget()
-            except Exception:
-                pass
-        else:
-            self.local_orca_light_var.set("🔴")
-            self.local_orca_status_var.set("Quick search did not find ORCA executable.")
-            self.local_orca_path_var.set(detail)
-            try:
-                self.local_orca_help_frame.pack(fill=tk.X, pady=(6, 0))
-            except Exception:
-                pass
+        self._open_master_paths_file()
 
     def _show_orca_path_setup_help(self):
         win = tk.Toplevel(self.parent)
-        win.title("Set up ORCA in PATH")
+        win.title("Set up paths.txt")
         win.transient(self.parent)
         win.geometry("760x460")
         body = ttk.Frame(win, padding=12)
         body.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(body, text="ORCA installed but not detected?", font=("Segoe UI", 11, "bold")).pack(anchor="w")
+        ttk.Label(body, text="Master path file not configured?").pack(anchor="w")
         msg = (
-            "1) Click 'Quick search drives' to auto-locate orca.exe.\n"
-            "2) If found, copy its folder path and set PATH / ORCA_EXE.\n\n"
-            "Windows (PowerShell, current user):\n"
-            "  setx ORCA_EXE \"C:\\\\path\\\\to\\\\orca.exe\"\n"
-            "  setx PATH \"$($env:PATH);C:\\\\path\\\\to\\\\orca\\\\folder\"\n\n"
-            "Then restart this app/terminal and click Re-check.\n\n"
-            "You can also paste the ORCA folder into 'ORCA Module/Path' field."
+            "Create or edit paths.txt in the installation folder or current working folder.\n\n"
+            "Recommended JSON structure:\n"
+            "{\n"
+            "  \"version\": 1,\n"
+            "  \"paths\": {\n"
+            "    \"ORCA_ROOT\": \"C:/path/to/orca\",\n"
+            "    \"ESPRESSO_ROOT\": \"C:/path/to/espresso\"\n"
+            "  },\n"
+            "  \"systems\": {\n"
+            "    \"cluster1\": {\n"
+            "      \"ip_address\": \"192.168.1.10\",\n"
+            "      \"username\": \"user\"\n"
+            "    }\n"
+            "  }\n"
+            "}\n\n"
+            "If paths are broken, click Edit paths.txt and fix them there."
         )
-        txt = tk.Text(body, wrap=tk.WORD, font=("Consolas", 10), height=16)
+        txt = tk.Text(body, wrap=tk.WORD,  height=16)
         txt.pack(fill=tk.BOTH, expand=True, pady=(8, 8))
         txt.insert("1.0", msg)
         txt.config(state=tk.DISABLED)
         btn_row = ttk.Frame(body)
         btn_row.pack(fill=tk.X)
-        ttk.Button(btn_row, text="Open ORCA Official", command=lambda: webbrowser.open("https://www.faccts.de/orca/")).pack(side=tk.LEFT)
+        ttk.Button(btn_row, text="Open paths.txt", command=self._open_master_paths_file).pack(side=tk.LEFT)
         ttk.Button(btn_row, text="Close", command=win.destroy).pack(side=tk.RIGHT)
 
     def _clear_local_job_log(self):
@@ -5571,9 +5699,12 @@ class InputCreatorModule5:
             messagebox.showwarning("Local Submission", "Input is empty. Generate input first.")
             return
 
-        ok, exe, version, _detail, all_versions = self._detect_local_orca(quick_scan=False)
+        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=False)
         if not ok:
-            show_software_not_found_dialog("ORCA", self.parent, callback_on_add_path=self._check_local_orca)
+            self.local_orca_light_var.set("🔴")
+            self.local_orca_status_var.set("paths.txt is broken or ORCA_ROOT is missing.")
+            self.local_orca_path_var.set(detail)
+            self._prompt_fix_master_paths(detail)
             return
         self._update_orca_combobox_ui(all_versions)
 
@@ -5867,34 +5998,8 @@ class InputCreatorModule5:
         except Exception:
             pass
 
-        # 1) Fast PATH/env/manual field check first
+        # 1) Read the master paths file first.
         ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=False)
-        if ok:
-            self._update_orca_combobox_ui(all_versions)
-            _hide_orca_action_buttons()
-            self.local_orca_light_var.set("🟢")
-            self.local_orca_status_var.set(f"ORCA installed and ready. Version: {version}")
-            self.local_orca_path_var.set("You can run local jobs now.")
-            try:
-                self.orca_path.set(os.path.dirname(exe))
-            except Exception:
-                pass
-            try:
-                self.local_orca_help_frame.pack_forget()
-            except Exception:
-                pass
-            return
-
-        # 2) Automatic quick drive search before showing install guidance
-        self.local_orca_light_var.set("🟡")
-        self.local_orca_status_var.set("ORCA not in PATH. Running quick drive search...")
-        self.local_orca_path_var.set("Checking common install locations...")
-        try:
-            self.frame.update_idletasks()
-        except Exception:
-            pass
-
-        ok, exe, version, detail, all_versions = self._detect_local_orca(quick_scan=True)
         if ok:
             self._update_orca_combobox_ui(all_versions)
             _hide_orca_action_buttons()
@@ -5913,8 +6018,9 @@ class InputCreatorModule5:
 
         _show_orca_action_buttons()
         self.local_orca_light_var.set("🔴")
-        self.local_orca_status_var.set("ORCA not detected for local submission.")
+        self.local_orca_status_var.set("paths.txt is broken or ORCA_ROOT is missing.")
         self.local_orca_path_var.set(detail)
+        self._prompt_fix_master_paths(detail)
         try:
             self.local_orca_help_frame.pack(fill=tk.X, pady=(6, 0))
         except Exception:
@@ -6016,7 +6122,7 @@ class InputCreatorModule5:
         ).pack(anchor="w")
         text_fr = ttk.Frame(f)
         text_fr.pack(fill=tk.BOTH, expand=True, pady=6)
-        txt = tk.Text(text_fr, width=72, height=16, wrap="none", font=("Consolas", 10))
+        txt = tk.Text(text_fr, width=72, height=16, wrap="none")
         ys = ttk.Scrollbar(text_fr, orient="vertical", command=txt.yview)
         txt.configure(yscrollcommand=ys.set)
         txt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -6917,7 +7023,7 @@ class InputCreatorModule5:
             tk.Label(
                 self.embed_host, 
                 text=f"Starting {viewer}...\nPlease wait.", 
-                bg="#2b2b2b", fg="#FFD700", font=("Segoe UI", 16, "bold"), justify="center"
+                bg="#2b2b2b", fg="#FFD700",  justify="center"
             ).place(relx=0.5, rely=0.5, anchor="center")
             self.frame.update_idletasks()
         except AttributeError:
@@ -6942,7 +7048,7 @@ class InputCreatorModule5:
                 tk.Label(
                     self.embed_host, 
                     text=f"{viewer} opened externally.\nCheck your taskbar.", 
-                    bg="#2b2b2b", fg="#0b5cab", font=("Segoe UI", 16, "bold"), justify="center"
+                    bg="#2b2b2b", fg="#0b5cab",  justify="center"
                 ).place(relx=0.5, rely=0.5, anchor="center")
                 return
             else:
@@ -7003,7 +7109,7 @@ class InputCreatorModule5:
                     w.destroy()
                 tk.Label(
                     self.embed_host, text="Failed to Embed Viewer\nCheck installation path",
-                    bg="#2b2b2b", fg="#FF4C4C", font=("Segoe UI", 14, "bold"), justify="center"
+                    bg="#2b2b2b", fg="#FF4C4C",  justify="center"
                 ).place(relx=0.5, rely=0.5, anchor="center")
             except AttributeError:
                 pass
@@ -7231,7 +7337,7 @@ class InputCreatorModule5:
             body,
             text=(
                 "Edit the full ORCA input here. Apply copies back to the main preview on the right. "
-                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, …), "
+                "For structured settings use the left tabs (Theory & Job Type, Functional & Basis Sets, ...), "
                 "then Generate Preview again if you change method or geometry."
             ),
             wraplength=740,
@@ -7263,7 +7369,7 @@ class InputCreatorModule5:
 
         wrap = ttk.Frame(body)
         wrap.pack(fill=tk.BOTH, expand=True)
-        txt = tk.Text(wrap, font=("Consolas", 11), wrap=tk.NONE, undo=True)
+        txt = tk.Text(wrap,  wrap=tk.NONE, undo=True)
         sy = ttk.Scrollbar(wrap, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(wrap, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
@@ -7278,7 +7384,7 @@ class InputCreatorModule5:
                 top_app = self.parent.winfo_toplevel()
                 app = getattr(top_app, "_orca_app", None)
                 if app:
-                    ctx = app_theme.build_context(app.theme_mode, app.editor_font_pt)
+                    ctx = app_theme.build_context(app.theme_mode)
                     app_theme.apply_editor_style(txt, ctx)
             except Exception:
                 pass
@@ -7331,7 +7437,7 @@ class InputCreatorModule5:
 
         wrap = ttk.Frame(body)
         wrap.pack(fill=tk.BOTH, expand=True)
-        txt = tk.Text(wrap, font=("Consolas", 11), wrap=tk.NONE, undo=True)
+        txt = tk.Text(wrap,  wrap=tk.NONE, undo=True)
         sy = ttk.Scrollbar(wrap, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(wrap, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
@@ -7346,7 +7452,7 @@ class InputCreatorModule5:
                 top_app = self.parent.winfo_toplevel()
                 app = getattr(top_app, "_orca_app", None)
                 if app:
-                    ctx = app_theme.build_context(app.theme_mode, app.editor_font_pt)
+                    ctx = app_theme.build_context(app.theme_mode)
                     app_theme.apply_editor_style(txt, ctx)
             except Exception:
                 pass
@@ -7434,7 +7540,7 @@ class InputCreatorModule5:
             is_dark = mode in ("dark", "black")
         except Exception:
             is_dark = False
-        lb = tk.Listbox(right, selectmode=tk.EXTENDED, font=("Consolas", 10))
+        lb = tk.Listbox(right, selectmode=tk.EXTENDED)
         sy = ttk.Scrollbar(right, orient=tk.VERTICAL, command=lb.yview)
         lb.config(yscrollcommand=sy.set)
         lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -7988,7 +8094,7 @@ class InputCreatorModule5:
         main_pw.add(left_f, weight=1)
     
         ttk.Label(left_f, text="Saved Custom Jobs:").pack(anchor="w")
-        listbox = tk.Listbox(left_f, selectmode=tk.SINGLE, font=("Segoe UI", 10))
+        listbox = tk.Listbox(left_f, selectmode=tk.SINGLE)
         listbox.pack(fill=tk.BOTH, expand=True, pady=2)
     
         def _refresh_list():
@@ -8011,7 +8117,7 @@ class InputCreatorModule5:
         name_entry.pack(fill=tk.X, pady=(0, 5))
     
         ttk.Label(right_f, text="Raw Input Template:").pack(anchor="w")
-        text_area = tk.Text(right_f, height=10, font=("Consolas", 10))
+        text_area = tk.Text(right_f, height=10)
         text_area.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
     
         dyn_xyz_var = tk.BooleanVar(value=True)
@@ -8112,7 +8218,7 @@ class InputCreatorModule5:
         f = ttk.Frame(top, padding=20)
         f.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(f, text="Select processing mode:", font=("Segoe UI", 10, "bold")).pack(pady=(0, 15))
+        ttk.Label(f, text="Select processing mode:").pack(pady=(0, 15))
         
         def _opt1():
             top.destroy()
@@ -8207,7 +8313,7 @@ class InputCreatorModule5:
         main_f = ttk.Frame(top, padding=10)
         main_f.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(main_f, text=f"Found {len(batch_data)} files. Review predicted Charge and Multiplicity.", font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 10))
+        ttk.Label(main_f, text=f"Found {len(batch_data)} files. Review predicted Charge and Multiplicity.").pack(anchor="w", pady=(0, 10))
         
         columns = ("folder", "name", "charge", "mult")
         tree = ttk.Treeview(main_f, columns=columns, show="headings", selectmode="extended")
@@ -8705,7 +8811,7 @@ class InputCreatorModule5:
                     messagebox.showwarning(
                         "NEB-TS",
                         "NEB-TS requires the product (end-point) structure.\n\n"
-                        "Use “Browse…” or “Paste / edit…” in the NEB-TS pathway section, "
+                        "Use “Browse...” or “Paste / edit...” in the NEB-TS pathway section, "
                         "or save coordinates as an .xyz file and choose it.",
                     )
 
@@ -8884,7 +8990,7 @@ class InputCreatorModule5:
         f = ttk.Frame(top, padding=20)
         f.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(f, text="Select files to save and provide names:", font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 15))
+        ttk.Label(f, text="Select files to save and provide names:").pack(anchor="w", pady=(0, 15))
         
         save_inp = tk.BooleanVar(value=True)
         save_script = tk.BooleanVar(value=self.exec_mode.get() in ["HPC", "Workstation"])
@@ -9551,7 +9657,7 @@ class InputCreatorModule5:
             tk.Label(
                 self.embed_host,
                 text=f"Starting {viewer}...\nPlease wait.",
-                bg="#2b2b2b", fg="#FFD700", font=("Segoe UI", 16, "bold"), justify="center",
+                bg="#2b2b2b", fg="#FFD700",  justify="center",
             ).place(relx=0.5, rely=0.5, anchor="center")
             self.frame.update_idletasks()
         except AttributeError:
@@ -9570,7 +9676,7 @@ class InputCreatorModule5:
                 tk.Label(
                     self.embed_host, 
                     text=f"{viewer} opened externally.\nCheck your taskbar.", 
-                    bg="#2b2b2b", fg="#0b5cab", font=("Segoe UI", 16, "bold"), justify="center"
+                    bg="#2b2b2b", fg="#0b5cab",  justify="center"
                 ).place(relx=0.5, rely=0.5, anchor="center")
                 return
             else:
@@ -9650,7 +9756,7 @@ class InputCreatorModule5:
         tk.Label(
             self.xtb_viewer_host,
             text=f"Starting {viewer}...\nPlease wait.",
-            bg="#2b2b2b", fg="#FFD700", font=("Segoe UI", 16, "bold"), justify="center",
+            bg="#2b2b2b", fg="#FFD700",  justify="center",
         ).place(relx=0.5, rely=0.5, anchor="center")
         self.frame.update_idletasks()
         
@@ -9668,7 +9774,7 @@ class InputCreatorModule5:
                 w.destroy()
             tk.Label(
                 self.xtb_viewer_host, text="Failed to Embed Viewer",
-                bg="#2b2b2b", fg="#FF4C4C", font=("Segoe UI", 14, "bold"), justify="center"
+                bg="#2b2b2b", fg="#FF4C4C",  justify="center"
             ).place(relx=0.5, rely=0.5, anchor="center")
             return
 
@@ -9766,8 +9872,8 @@ class InputCreatorModule5:
         pw.add(f1, weight=1)
         pw.add(f2, weight=1)
         
-        ttk.Label(f1, text="Input", font=("Segoe UI", 9, "bold")).pack(anchor="n")
-        ttk.Label(f2, text="Output", font=("Segoe UI", 9, "bold")).pack(anchor="n")
+        ttk.Label(f1, text="Input").pack(anchor="n")
+        ttk.Label(f2, text="Output").pack(anchor="n")
         
         f1_view = ttk.Frame(f1)
         f2_view = ttk.Frame(f2)
@@ -9916,17 +10022,16 @@ class InputCreatorModule5:
         win.geometry("600x320")
         win.resizable(False, False)
 
-        ttk.Label(win, text="xTB — Extended Tight Binding", font=("Segoe UI", 14, "bold")).pack(pady=(16, 4))
+        ttk.Label(win, text="xTB — Extended Tight Binding").pack(pady=(16, 4))
         ttk.Label(
             win,
             text="Developed by Prof. Stefan Grimme and coworkers\n"
                  "Mulliken Center for Theoretical Chemistry, University of Bonn",
-            font=("Segoe UI", 10), justify="center",
+             justify="center",
         ).pack(pady=(0, 12))
 
         ttk.Separator(win, orient="horizontal").pack(fill=tk.X, padx=20, pady=4)
-        ttk.Label(win, text="Please cite the following papers when using xTB results:",
-                  font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=20, pady=(8, 4))
+        ttk.Label(win, text="Please cite the following papers when using xTB results:").pack(anchor="w", padx=20, pady=(8, 4))
 
         refs = [
             ("GFN2-xTB", "C. Bannwarth, S. Ehlert, S. Grimme, J. Chem. Theory Comput. 2019, 15, 1652-1671"),
@@ -9936,7 +10041,7 @@ class InputCreatorModule5:
         for key, text in refs:
             row = ttk.Frame(win)
             row.pack(fill=tk.X, padx=20, pady=2)
-            ttk.Label(row, text=f"• {text}", font=("Segoe UI", 9), wraplength=460).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ttk.Label(row, text=f"- {text}",  wraplength=460).pack(side=tk.LEFT, fill=tk.X, expand=True)
             ttk.Button(row, text="Open DOI",
                        command=lambda u=papers[key]: webbrowser.open(u)).pack(side=tk.RIGHT, padx=(8, 0))
 
@@ -9981,7 +10086,7 @@ class InputCreatorModule5:
         win.title("xTB Full Output Log")
         win.geometry("900x650")
 
-        txt = tk.Text(win, font=("Consolas", 10), wrap=tk.NONE)
+        txt = tk.Text(win,  wrap=tk.NONE)
         sy = ttk.Scrollbar(win, orient=tk.VERTICAL, command=txt.yview)
         sx = ttk.Scrollbar(win, orient=tk.HORIZONTAL, command=txt.xview)
         txt.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)

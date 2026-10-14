@@ -107,20 +107,20 @@ class OrcaPreviewFileDialog(tk.Toplevel):
         style.configure("Modern.TFrame", background="#f8fafc")
         style.configure("Sidebar.TFrame", background="#eff6ff")
         style.configure("Modern.TButton", padding=4)
-        style.configure("PESAction.TButton", padding=(8, 4), font=("Segoe UI", 9))
-        style.configure("Sidebar.Treeview", background="#eff6ff", foreground="#1e293b", fieldbackground="#eff6ff", borderwidth=0, font=("Segoe UI", 10))
+        style.configure("PESAction.TButton", padding=(8, 4))
+        style.configure("Sidebar.Treeview", background="#eff6ff", foreground="#1e293b", fieldbackground="#eff6ff", borderwidth=0)
         style.map("Sidebar.Treeview", background=[('selected', '#3b82f6')], foreground=[('selected', '#ffffff')])
         
-        style.configure("Main.Treeview", background="#ffffff", foreground="#1e293b", fieldbackground="#ffffff", borderwidth=0, font=("Segoe UI", 10))
-        style.configure("Main.Treeview.Heading", background="#f1f5f9", foreground="#0f172a", font=("Segoe UI", 10, "bold"), borderwidth=1, relief="flat")
+        style.configure("Main.Treeview", background="#ffffff", foreground="#1e293b", fieldbackground="#ffffff", borderwidth=0)
+        style.configure("Main.Treeview.Heading", background="#f1f5f9", foreground="#0f172a",  borderwidth=1, relief="flat")
         style.map("Main.Treeview", background=[('selected', '#6366f1')], foreground=[('selected', '#ffffff')])
 
     def _build_ui(self):
         top_bar = ttk.Frame(self, padding=5, style="Modern.TFrame")
         top_bar.pack(fill=tk.X)
-        self.btn_up = ttk.Button(top_bar, text="⇧ Up", width=6, command=self._go_up, style="Modern.TButton")
+        self.btn_up = ttk.Button(top_bar, text="Up", width=6, command=self._go_up, style="Modern.TButton")
         self.btn_up.pack(side=tk.LEFT)
-        ent = ttk.Entry(top_bar, textvariable=self.current_dir, font=("Segoe UI", 10))
+        ent = ttk.Entry(top_bar, textvariable=self.current_dir)
         ent.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         ent.bind("<Return>", lambda e: self._load_dir(self.current_dir.get()))
         
@@ -161,12 +161,12 @@ class OrcaPreviewFileDialog(tk.Toplevel):
         self.canvas = tk.Canvas(right_frame, bg="#ffffff", highlightthickness=1, highlightbackground="#cbd5e1")
         self.canvas.pack(fill=tk.BOTH, expand=True)
         
-        self.lbl_status = ttk.Label(right_frame, text="Select an .out or .log file...", background="#ffffff", foreground="#64748b", font=("Segoe UI", 12))
+        self.lbl_status = ttk.Label(right_frame, text="Select an .out or .log file...", background="#ffffff", foreground="#64748b")
         self.lbl_status.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         
         bot_bar = ttk.Frame(self, padding=5, style="Modern.TFrame")
         bot_bar.pack(fill=tk.X)
-        self.entry_file = ttk.Entry(bot_bar, font=("Segoe UI", 10))
+        self.entry_file = ttk.Entry(bot_bar)
         self.entry_file.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         ttk.Button(bot_bar, text="Cancel", command=self.on_cancel, width=10, style="Modern.TButton").pack(side=tk.RIGHT)
         ttk.Button(bot_bar, text="Open", command=self.on_open, width=10, style="Modern.TButton").pack(side=tk.RIGHT, padx=5)
@@ -189,7 +189,7 @@ class OrcaPreviewFileDialog(tk.Toplevel):
             pj_node = self.sidebar.insert("", "end", text="Project Folders", open=True)
             for p in self.project_dirs:
                 name = os.path.basename(p) or p
-                self.sidebar.insert(pj_node, "end", text=f"📂 {name}", tags=("shortcut", p))
+                self.sidebar.insert(pj_node, "end", text=f"{name}", tags=("shortcut", p))
 
         shortcuts = [
             ("Home", home),
@@ -200,7 +200,7 @@ class OrcaPreviewFileDialog(tk.Toplevel):
         sc_node = self.sidebar.insert("", "end", text="Quick Access", open=True)
         for name, path in shortcuts:
             if os.path.isdir(path):
-                self.sidebar.insert(sc_node, "end", text=f"⭐ {name}", tags=("shortcut", path))
+                self.sidebar.insert(sc_node, "end", text=f"{name}", tags=("shortcut", path))
                 
         dr_node = self.sidebar.insert("", "end", text="This PC", open=True)
         import string
@@ -208,9 +208,9 @@ class OrcaPreviewFileDialog(tk.Toplevel):
             for d in string.ascii_uppercase:
                 dp = f"{d}:\\"
                 if os.path.exists(dp):
-                    self.sidebar.insert(dr_node, "end", text=f"💽 Local Disk ({d}:)", tags=("shortcut", dp))
+                    self.sidebar.insert(dr_node, "end", text=f"Local Disk ({d}:)", tags=("shortcut", dp))
         else:
-            self.sidebar.insert(dr_node, "end", text="💻 Root (/)", tags=("shortcut", "/"))
+            self.sidebar.insert(dr_node, "end", text="Root (/)", tags=("shortcut", "/"))
 
     def _on_sidebar_select(self, event):
         sel = self.sidebar.selection()
@@ -403,14 +403,14 @@ class OrcaPreviewFileDialog(tk.Toplevel):
         bonds = []
         for i in range(len(norm)):
             for j in range(i + 1, len(norm)):
-                sy1 = norm[i][0].upper()
+                sy1 = norm[0].upper()
                 sy2 = norm[j][0].upper()
                 r1 = rad_map.get(sy1, 0.7)
                 r2 = rad_map.get(sy2, 0.7)
                 thresh = (r1 + r2) * 1.3
-                dx = norm[i][1] - norm[j][1]
-                dy = norm[i][2] - norm[j][2]
-                dz = norm[i][3] - norm[j][3]
+                dx = norm[1] - norm[j][1]
+                dy = norm[2] - norm[j][2]
+                dz = norm[3] - norm[j][3]
                 if (dx*dx + dy*dy + dz*dz)**0.5 < thresh:
                     bonds.append((i, j))
                     
@@ -1025,7 +1025,7 @@ class PESPlotModule(BaseModule):
             ),
             justify=tk.LEFT,
         ).pack(anchor="w", padx=12, pady=(12, 4))
-        tk.Label(top, text=f"Starting box: {nm}", font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=12, pady=(0, 8))
+        tk.Label(top, text=f"Starting box: {nm}").pack(anchor="w", padx=12, pady=(0, 8))
         var = tk.StringVar(value="self")
         fr = tk.Frame(top)
         fr.pack(anchor="w", padx=12, pady=4)
@@ -1121,9 +1121,9 @@ class PESPlotModule(BaseModule):
         if not faded:
             messagebox.showinfo(
                 "Restore on PES plot",
-                "None of the selected boxes are faded (hidden from the PES by “Hide from PES plot…” along a pathway).\n\n"
+                "None of the selected boxes are faded (hidden from the PES by “Hide from PES plot...” along a pathway).\n\n"
                 "Rubber-band or multi-select faded boxes on the flow diagram first, then use this button or "
-                "the context-menu item “Restore … faded on PES plot”.",
+                "the context-menu item “Restore ... faded on PES plot”.",
                 parent=self._flow_dialog_parent(),
             )
             return
@@ -1178,7 +1178,7 @@ class PESPlotModule(BaseModule):
             ),
             justify=tk.LEFT,
         ).pack(anchor="w", padx=12, pady=(12, 4))
-        tk.Label(top, text=f"Starting box: {nm}", font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=12, pady=(0, 8))
+        tk.Label(top, text=f"Starting box: {nm}").pack(anchor="w", padx=12, pady=(0, 8))
         var = tk.StringVar(value="self")
         fr = tk.Frame(top)
         fr.pack(anchor="w", padx=12, pady=4)
@@ -1326,7 +1326,7 @@ class PESPlotModule(BaseModule):
             a = -0.5 * math.pi + (0.5 * math.pi) * (i / n)
             pts.extend([cx_r + r * math.cos(a), cy + r * math.sin(a)])
         pts.extend([x2, cy, x1, cy])
-        # West (π) → top (−π/2 ≡ 3π/2): must be upper-left quadrant, not π→π/2 (lower quadrant)
+        # West (π) → top (-π/2 ≡ 3π/2): must be upper-left quadrant, not π→π/2 (lower quadrant)
         for i in range(n + 1):
             a = math.pi + (0.5 * math.pi) * (i / n)
             pts.extend([cx_l + r * math.cos(a), cy + r * math.sin(a)])
@@ -1538,9 +1538,6 @@ class PESPlotModule(BaseModule):
     def get_name(self) -> str:
         return "PES Plot"
 
-    def get_icon(self) -> str:
-        return "📈"
-
     def get_session_state(self):
         state = {
             "version": 1,
@@ -1634,15 +1631,15 @@ class PESPlotModule(BaseModule):
 
         head = ttk.Frame(self.main_frame)
         head.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(head, text="Potential Energy Plot Maker", font=("Segoe UI", 13, "bold")).pack(side=tk.LEFT)
+        ttk.Label(head, text="Potential Energy Plot Maker").pack(side=tk.LEFT)
 
         btns = ttk.Frame(self.main_frame)
         btns.pack(fill=tk.X, pady=(0, 10), ipady=2)
         self._plot_btn_top = self._create_animated_plot_button(btns)
         self._plot_btn_top.pack(side=tk.RIGHT, padx=(10, 0))
         ttk.Button(btns, text="Quick Add Intermediate", command=lambda: self._quick_add("Intermediate"), style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(btns, text="+ Add TS", command=lambda: self._quick_add("TS"), style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(btns, text="+ Add Normal", command=lambda: self._quick_add("Normal"), style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btns, text="Add TS", command=lambda: self._quick_add("TS"), style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(btns, text="Add Normal", command=lambda: self._quick_add("Normal"), style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(btns, text="Edit selected", command=self._edit_selected, style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(btns, text="Remove selected", command=self._remove_selected, style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(btns, text="Recompute", command=self._recompute, style="PESAction.TButton").pack(side=tk.LEFT, padx=(0, 6))
@@ -1868,7 +1865,7 @@ class PESPlotModule(BaseModule):
         )
         self._flow_detach_btn.pack(side=tk.RIGHT, padx=(6, 0))
 
-        tk.Label(act_right, text="(Ctrl + wheel zoom)", foreground="#64748b", font=("Segoe UI", 8)).pack(
+        tk.Label(act_right, text="(Ctrl + wheel zoom)", foreground="#64748b").pack(
             side=tk.RIGHT, padx=(4, 8)
         )
         self._flow_chrome_btn(act_right, text="Unfade", command=self._flow_restore_faded_selection_on_pes).pack(
@@ -1889,7 +1886,7 @@ class PESPlotModule(BaseModule):
         ttk.Checkbutton(act_left, text="Rel G labels", variable=self._show_flow_rel_g, command=self._draw_flow).pack(
             side=tk.LEFT, padx=(0, 10)
         )
-        ttk.Label(act_left, text="Dark Mode", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Label(act_left, text="Dark Mode").pack(side=tk.LEFT, padx=(0, 4))
         self.switch_dark = ModernSwitch(act_left, command=_toggle_dark_mode, bg_color="#e5e7eb")
         self.switch_dark.pack(side=tk.LEFT, padx=(0, 4))
 
@@ -2465,15 +2462,15 @@ class PESPlotModule(BaseModule):
         r3 = ttk.Frame(body); r3.pack(fill=tk.X, pady=4)
         ttk.Label(r3, text="Stoichiometry:", width=18).pack(side=tk.LEFT)
         ttk.Entry(r3, textvariable=scale_v, width=12).pack(side=tk.LEFT)
-        ttk.Button(r3, text="×2", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) * 2))).pack(side=tk.LEFT, padx=(8, 2))
-        ttk.Button(r3, text="÷2", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) / 2))).pack(side=tk.LEFT, padx=2)
-        ttk.Button(r3, text="÷3", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) / 3))).pack(side=tk.LEFT, padx=2)
+        ttk.Button(r3, text="x2", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) * 2))).pack(side=tk.LEFT, padx=(8, 2))
+        ttk.Button(r3, text="/2", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) / 2))).pack(side=tk.LEFT, padx=2)
+        ttk.Button(r3, text="/3", command=lambda: scale_v.set(str((float(scale_v.get() or 1.0)) / 3))).pack(side=tk.LEFT, padx=2)
         ttk.Checkbutton(r3, text="Include in PES plot", variable=plot_v).pack(side=tk.LEFT, padx=(14, 0))
 
         ttk.Label(
             body,
             text="Correction logic: Gcorr = (SP E if provided else main E) + TC(main), then multiplied by factor.",
-            font=("Segoe UI", 8),
+            
         ).pack(anchor="w", pady=(6, 0))
 
         bar = ttk.Frame(body); bar.pack(fill=tk.X, pady=(12, 0))
@@ -2949,13 +2946,13 @@ class PESPlotModule(BaseModule):
             normal_term_display = str(row.get("normal_term", ""))
             if row.get("normal_term") == "No":
                 has_error = True
-                normal_term_display += " ⚠️"
+                normal_term_display += " "
                 
             if s2_dev is not None:
                 try:
                     if abs(float(s2_dev)) > 0.5:
                         has_error = True
-                        s2_dev_display += " ⚠️ (Contam >0.5)"
+                        s2_dev_display += " (Contam >0.5)"
                 except ValueError: pass
 
             kind = row.get("kind", "")
@@ -2966,10 +2963,10 @@ class PESPlotModule(BaseModule):
                     i_val = int(imag)
                     if kind == "TS" and i_val != 1:
                         has_error = True
-                        imag_display += " ⚠️"
+                        imag_display += " "
                     elif kind != "TS" and i_val > 0:
                         has_error = True
-                        imag_display += " ⚠️"
+                        imag_display += " "
                 except ValueError: pass
 
             if has_error:
@@ -2977,7 +2974,7 @@ class PESPlotModule(BaseModule):
                 
             display_name = row["name"]
             if row.get("main_out") or row.get("sp_out") or row.get("image_path"):
-                display_name += "  ⓘ"
+                display_name += "  "
 
             self.tree.insert(
                 "",
@@ -3044,15 +3041,12 @@ class PESPlotModule(BaseModule):
             c.create_text(
                 12, 28, anchor="w",
                 text="Click + Add species/TS to start reaction flow.",
-                font=("Segoe UI", max(9, int(13 * z))),
+                
                 fill="#64748b",
             )
             return
             
         zt_all = self._flow_text_zoom(z)
-        font_plus = ("Segoe UI", max(8, int(18 * z)), "bold")
-        font_minus = ("Segoe UI", max(9, int(20 * z)), "bold")
-        font_edge = ("Segoe UI", max(7, int(9 * zt_all)), "bold")
         show_split_energy = bool(self._show_flow_rel_g.get())
 
         arrow_width = max(1.0, 2.6 * z)
@@ -3158,23 +3152,23 @@ class PESPlotModule(BaseModule):
                         # Hide (Close) button at top right
                         hx, hy = px + card_w/2 - 14*z, py - card_h/2 + 14*z
                         c.create_oval(hx-10*z, hy-10*z, hx+10*z, hy+10*z, fill="#f1f5f9", outline="#cbd5e1", tags=(f"hide_{edge_key}", "expanded_popup"))
-                        c.create_text(hx, hy, text="✖", font=("Segoe UI", max(7, int(8*z))), fill="#475569", tags=(f"hide_{edge_key}", "expanded_popup"))
+                        c.create_text(hx, hy, text="Remove",  fill="#475569", tags=(f"hide_{edge_key}", "expanded_popup"))
                         
                         # Clear all button (Trash icon) at top left (opposite side)
                         tx, ty = px - card_w/2 + 14*z, py - card_h/2 + 14*z
                         c.create_oval(tx-10*z, ty-10*z, tx+10*z, ty+10*z, fill="#fee2e2", outline="#fecaca", tags=(f"clear_{edge_key}", "expanded_popup"))
-                        c.create_text(tx, ty, text="🗑", font=("Segoe UI", max(8, int(10*z))), fill="#b91c1c", tags=(f"clear_{edge_key}", "expanded_popup"))
+                        c.create_text(tx, ty, text="",  fill="#b91c1c", tags=(f"clear_{edge_key}", "expanded_popup"))
                         
                         # Add Normal section (Top part of card)
                         ay = py - card_h/2 + max(34, int(38*z))
                         c.create_rectangle(px - card_w/2 + 12*z, ay - 12*z, px - card_w/2 + 32*z, ay + 8*z, fill="#d1fae5", outline="#34d399", tags=(f"add_{edge_key}", "expanded_popup"))
-                        c.create_text(px - card_w/2 + 22*z, ay - 2*z, text="+", font=("Segoe UI", max(12, int(14*z)), "bold"), fill="#059669", tags=(f"add_{edge_key}", "expanded_popup"))
-                        c.create_text(px - card_w/2 + 38*z, ay - 2*z, text="Add Molecules", font=("Segoe UI", max(9, int(10*z)), "bold"), fill="#059669", anchor="w", tags=(f"add_{edge_key}", "expanded_popup"))
+                        c.create_text(px - card_w/2 + 22*z, ay - 2*z, text="Add",  fill="#059669", tags=(f"add_{edge_key}", "expanded_popup"))
+                        c.create_text(px - card_w/2 + 38*z, ay - 2*z, text="Add Molecules",  fill="#059669", anchor="w", tags=(f"add_{edge_key}", "expanded_popup"))
                         
                         curr_y = ay + max(16, int(20 * z))
                         if add_text:
                             for line in add_text.split('\n'):
-                                c.create_text(px - card_w/2 + 16*z, curr_y, text=line, font=("Segoe UI", max(9, int(10*z)), "bold"), fill="#1e293b", anchor="w", tags=(f"expand_{edge_key}", "expanded_popup"))
+                                c.create_text(px - card_w/2 + 16*z, curr_y, text=line,  fill="#1e293b", anchor="w", tags=(f"expand_{edge_key}", "expanded_popup"))
                                 curr_y += max(14, int(16 * z))
                         else:
                             curr_y += max(8, int(10 * z))
@@ -3182,13 +3176,13 @@ class PESPlotModule(BaseModule):
                         # Remove Normal section (Middle/Bottom part of card)
                         ry = curr_y + max(20, int(24 * z))
                         c.create_rectangle(px - card_w/2 + 12*z, ry - 12*z, px - card_w/2 + 32*z, ry + 8*z, fill="#ffe4e6", outline="#fb7185", tags=(f"rem_{edge_key}", "expanded_popup"))
-                        c.create_text(px - card_w/2 + 22*z, ry - 2*z, text="-", font=("Segoe UI", max(13, int(15*z)), "bold"), fill="#e11d48", tags=(f"rem_{edge_key}", "expanded_popup"))
-                        c.create_text(px - card_w/2 + 38*z, ry - 2*z, text="Remove Molecules", font=("Segoe UI", max(9, int(10*z)), "bold"), fill="#e11d48", anchor="w", tags=(f"rem_{edge_key}", "expanded_popup"))
+                        c.create_text(px - card_w/2 + 22*z, ry - 2*z, text="Delete",  fill="#e11d48", tags=(f"rem_{edge_key}", "expanded_popup"))
+                        c.create_text(px - card_w/2 + 38*z, ry - 2*z, text="Remove Molecules",  fill="#e11d48", anchor="w", tags=(f"rem_{edge_key}", "expanded_popup"))
                         
                         curr_y = ry + max(16, int(20 * z))
                         if rem_text:
                             for line in rem_text.split('\n'):
-                                c.create_text(px - card_w/2 + 16*z, curr_y, text=line, font=("Segoe UI", max(9, int(10*z)), "bold"), fill="#1e293b", anchor="w", tags=(f"expand_{edge_key}", "expanded_popup"))
+                                c.create_text(px - card_w/2 + 16*z, curr_y, text=line,  fill="#1e293b", anchor="w", tags=(f"expand_{edge_key}", "expanded_popup"))
                                 curr_y += max(14, int(16 * z))
                                 
                     else:
@@ -3201,14 +3195,14 @@ class PESPlotModule(BaseModule):
                         fg_add = "#ffffff" if add_text else "#10b981"
                         
                         c.create_oval(px - b_r, py - off_y - b_r, px + b_r, py - off_y + b_r, fill=bg_add, outline="#a7f3d0", width=max(1.0, 1.5*z), tags=(f"expand_{edge_key}",))
-                        c.create_text(px, py - off_y - max(1, 1*z), text="+", font=("Segoe UI", max(8, int(12*z)), "bold"), fill=fg_add, tags=(f"expand_{edge_key}",))
+                        c.create_text(px, py - off_y - max(1, 1*z), text="Add",  fill=fg_add, tags=(f"expand_{edge_key}",))
                         
                         # Minus Badge
                         bg_rem = "#f43f5e" if rem_text else "#ffffff"
                         fg_rem = "#ffffff" if rem_text else "#f43f5e"
                         
                         c.create_oval(px - b_r, py + off_y - b_r, px + b_r, py + off_y + b_r, fill=bg_rem, outline="#fecdd3", width=max(1.0, 1.5*z), tags=(f"expand_{edge_key}",))
-                        c.create_text(px, py + off_y - max(1, 1*z), text="-", font=("Segoe UI", max(10, int(13*z)), "bold"), fill=fg_rem, tags=(f"expand_{edge_key}",))
+                        c.create_text(px, py + off_y - max(1, 1*z), text="Delete",  fill=fg_rem, tags=(f"expand_{edge_key}",))
             except: pass
 
         # Draw drag line if active
@@ -3240,12 +3234,9 @@ class PESPlotModule(BaseModule):
             fn_fit, fe_fit, _ = self._flow_capsule_fit_fonts(
                 sp, box_h, sp_w, z, bs_i, show_split_energy, ev_fit
             )
-            font_flow_name_single = ("Segoe UI", fn_fit, "bold")
-            font_flow_name_split = ("Segoe UI", fn_fit, "bold")
             pt_ev_split = 0
             if show_split_energy:
                 pt_ev_split = max(5, int(fe_fit or 10))
-                font_flow_e_val = ("Segoe UI", pt_ev_split, "bold")
             xf2 = x + sp_w
             yf2 = y + box_h
             cx = x + sp_w / 2
@@ -3313,11 +3304,11 @@ class PESPlotModule(BaseModule):
             )
 
             # Name is ALWAYS centered inside the rect
-            c.create_text(cx, cy_mid, text=sp.get("plot_name_override") or sp["name"], fill=txt_main, font=font_flow_name_single, tags=(tag,))
+            c.create_text(cx, cy_mid, text=sp.get("plot_name_override") or sp["name"], fill=txt_main,  tags=(tag,))
 
             if show_split_energy:
                 y_e_val = yf2 + max(10.0, 14.0 * z * bs_i)
-                c.create_text(cx, y_e_val, text=ev_fit, fill=txt_energy, font=font_flow_e_val, tags=(tag,))
+                c.create_text(cx, y_e_val, text=ev_fit, fill=txt_energy,  tags=(tag,))
 
             if f"sp:{sp['id']}" in self._flow_multi_selected:
                 sel_pad = max(4, int(5 * z * bs_i))
@@ -3378,11 +3369,11 @@ class PESPlotModule(BaseModule):
                 txt = str(ov.get("text", "Text"))
                 fs = max(8, int(float(ov.get("size", 12.0)) * z))
                 tcol = str(ov.get("color", "#111827") or "#111827")
-                c.create_text(ox, oy, text=txt, font=("Segoe UI", fs, "bold"), fill=tcol, anchor="nw", tags=(tag, "flow_overlay"))
+                c.create_text(ox, oy, text=txt,  fill=tcol, anchor="nw", tags=(tag, "flow_overlay"))
             elif kind == "image":
                 pth = str(ov.get("path", "") or "").strip()
                 if not pth or not os.path.isfile(pth):
-                    c.create_text(ox, oy, text="[image missing]", font=("Segoe UI", max(8, int(10*z))), fill="#991b1b", anchor="nw", tags=(tag, "flow_overlay"))
+                    c.create_text(ox, oy, text="[image missing]",  fill="#991b1b", anchor="nw", tags=(tag, "flow_overlay"))
                     continue
                 try:
                     if str(pth).lower().endswith((".png", ".gif", ".ppm", ".pgm")):
@@ -3395,10 +3386,10 @@ class PESPlotModule(BaseModule):
                         nh = max(8, int(pil.height * zoom * z))
                         pil = pil.resize((nw, nh))
                         img = ImageTk.PhotoImage(pil)
-                    self._flow_overlay_tkimgs[i] = img
+                    self._flow_overlay_tkimgs= img
                     c.create_image(ox, oy, image=img, anchor="nw", tags=(tag, "flow_overlay"))
                 except Exception:
-                    c.create_text(ox, oy, text="[image error]", font=("Segoe UI", max(8, int(10*z))), fill="#991b1b", anchor="nw", tags=(tag, "flow_overlay"))
+                    c.create_text(ox, oy, text="[image error]",  fill="#991b1b", anchor="nw", tags=(tag, "flow_overlay"))
             elif kind == "shape":
                 shp = str(ov.get("shape", "rectangle")).lower()
                 sc = max(0.4, float(ov.get("size", 1.0)))
@@ -3429,7 +3420,7 @@ class PESPlotModule(BaseModule):
         btn_fill = "#4f46e5" if is_dark else "#6366f1"
         btn_outline = "#4338ca" if is_dark else "#4f46e5"
         self._draw_rounded_rect(c, c_x0, c_y0, c_x0 + ab_w, c_y0 + ab_h, r=11, fill=btn_fill, outline=btn_outline, width=1, tags=("canvas_add_btn",), splinesteps=28)
-        c.create_text(c_x0 + ab_w / 2, c_y0 + ab_h / 2 + 0.5, text="+ Add", fill="#fafafa", font=("Segoe UI", 10, "bold"), tags=("canvas_add_btn",))
+        c.create_text(c_x0 + ab_w / 2, c_y0 + ab_h / 2 + 0.5, text="Add", fill="#fafafa",  tags=("canvas_add_btn",))
 
         try:
             c.tag_raise("flow_handle")
@@ -3529,9 +3520,9 @@ class PESPlotModule(BaseModule):
             i = 0
             n = len(src)
             while i < n:
-                if src[i] == marker:
+                if src== marker:
                     i += 1
-                    if i < n and src[i] == "{":
+                    if i < n and src== "{":
                         j = src.find("}", i + 1)
                         if j == -1:
                             token = src[i + 1 :]
@@ -3547,7 +3538,7 @@ class PESPlotModule(BaseModule):
                         i = j
                     out.append(token.translate(table))
                 else:
-                    out.append(src[i])
+                    out.append(src)
                     i += 1
             return "".join(out)
 
@@ -4003,7 +3994,7 @@ class PESPlotModule(BaseModule):
         self._refresh_subproject_list(selected_parent=self.project_combo_var.get())
 
     def _build_labels_menu_button(self, parent):
-        btn = ttk.Menubutton(parent, text="Labels ▸")
+        btn = ttk.Menubutton(parent, text="Labels ")
         menu = tk.Menu(btn, tearoff=0)
         color_menu = tk.Menu(menu, tearoff=0)
         size_menu = tk.Menu(menu, tearoff=0)
@@ -4089,7 +4080,7 @@ class PESPlotModule(BaseModule):
             parent,
             text=text,
             command=command,
-            font=("Segoe UI", font_px, "bold"),
+            
             bg=bg,
             fg=fg,
             activebackground=abg,
@@ -4110,7 +4101,7 @@ class PESPlotModule(BaseModule):
             holder,
             text="PLOT",
             command=self._render_plot,
-            font=("Segoe UI", 12, "bold"),
+            
             bg="#2563eb",
             fg="white",
             activebackground="#1d4ed8",
@@ -4137,7 +4128,7 @@ class PESPlotModule(BaseModule):
             # Match intro splash gradient family (green -> yellow -> orange/red).
             palette = ["#16a34a", "#84cc16", "#eab308", "#f59e0b", "#ef4444", "#f59e0b", "#eab308", "#84cc16"]
             i = int(getattr(self, "_plot_anim_phase", 0)) % len(palette)
-            holder.configure(bg=palette[i])
+            holder.configure(bg=palette)
             self._plot_anim_phase = i + 1
             holder.after(140, self._animate_plot_button_border)
         except Exception:
@@ -4195,7 +4186,7 @@ class PESPlotModule(BaseModule):
         ttk.Label(
             body,
             text="Select existing project/sub-project or type new names",
-            font=("Segoe UI", 11, "bold"),
+            
         ).pack(anchor="w", pady=(0, 10))
 
         r1 = ttk.Frame(body)
@@ -4212,7 +4203,7 @@ class PESPlotModule(BaseModule):
         sub_cb = ttk.Combobox(r2, textvariable=sub_var, values=[], state="normal", width=42)
         sub_cb.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        preview = tk.Listbox(body, height=14, font=("Consolas", 9))
+        preview = tk.Listbox(body, height=14)
         preview.pack(fill=tk.BOTH, expand=True, pady=(6, 10))
 
         def _refresh_preview():
@@ -4951,7 +4942,7 @@ class PESPlotModule(BaseModule):
                     
                     idx_for_sid = next((i for i, s in enumerate(self.species) if s["id"] == sid), -1)
                     if idx_for_sid != -1:
-                        m.add_command(label="Open Structure / Info (ⓘ)", command=lambda idx=idx_for_sid, ev=event: self._show_path_popup(idx, ev.x_root, ev.y_root))
+                        m.add_command(label="Open Structure / Info ()", command=lambda idx=idx_for_sid, ev=event: self._show_path_popup(idx, ev.x_root, ev.y_root))
                         
                         v_menu = tk.Menu(m, tearoff=0)
                         v_menu.add_command(label="ACYView", command=lambda s=sid: self._open_external_3d(s, "ACYView"))
@@ -4963,7 +4954,7 @@ class PESPlotModule(BaseModule):
                         m.add_command(label="Delete Box", command=lambda s=sid: self._delete_flow_box(s))
                     m.add_separator()
                     m.add_command(
-                        label="Hide from PES plot (faded on flow)…",
+                        label="Hide from PES plot (faded on flow)...",
                         command=lambda s=sid: self._flow_ctx_hide_from_pes(s),
                     )
                     restore_ids = self._flow_faded_restore_ids_from_selection(self._flow_multi_selected)
@@ -4971,7 +4962,7 @@ class PESPlotModule(BaseModule):
                         rn = len(restore_ids)
                         if rn == 1:
                             m.add_command(
-                                label="Restore to PES plot (unfade on flow)…",
+                                label="Restore to PES plot (unfade on flow)...",
                                 command=lambda s=list(restore_ids)[0]: self._flow_ctx_restore_to_pes(s),
                             )
                         else:
@@ -5365,7 +5356,7 @@ class PESPlotModule(BaseModule):
             sel = lb.curselection()
             if not sel: return
             i = sel[0]
-            real_idx = normals_info[i][0]
+            real_idx = normals_info[0]
             row = self._species_dialog(self.species[real_idx])
             if row:
                 self.species[real_idx].update(row)
@@ -5380,7 +5371,7 @@ class PESPlotModule(BaseModule):
             if not messagebox.askyesno("Confirm", "Delete this normal molecule completely from the project?"):
                 return
             i = sel[0]
-            real_idx = normals_info[i][0]
+            real_idx = normals_info[0]
             del self.species[real_idx]
             self._refresh_ref_values()
             self._recompute()
@@ -5395,8 +5386,8 @@ class PESPlotModule(BaseModule):
             for i in lb.curselection():
                 if not (0 <= i < len(normal_ids)):
                     continue
-                sid = normal_ids[i]
-                nm = normals_info[i][1].get("name", f"ID {sid}")
+                sid = normal_ids                
+                nm = normals_info[1].get("name", f"ID {sid}")
                 prev = self.edge_links.get(edge_key, {}).get("add" if mode == "add" else "remove", {}).get(sid, 1.0)
                 coeff = simpledialog.askfloat(
                     "Stoichiometry",
@@ -5982,7 +5973,7 @@ class PESPlotModule(BaseModule):
                             else:
                                 assigned.append("#f59e0b")  # orange-ish
                 for i, (_mE, p) in enumerate(path_max_energies):
-                    c = assigned[i]
+                    c = assigned                    
                     for k in range(len(p) - 1):
                         path_colors_map[f"{p[k]}_{p[k+1]}"] = c
             elif color_mode == "Black":
@@ -6146,7 +6137,7 @@ class PESPlotModule(BaseModule):
         for i, p in enumerate(all_paths):
             short = " → ".join(id_to_name.get(sid, str(sid)) for sid in p[:10])
             if len(p) > 10:
-                short += " …"
+                short += " ..."
             self._pathway_options.append({"idx": i, "label": f"{i + 1}: {short}", "ids": list(p)})
         for edge_key, e_data in render_edges.items():
             try:
@@ -6339,7 +6330,7 @@ class PESPlotModule(BaseModule):
                 elif shape == "classic 2": val_txt = f"({yi:.0f})"
                 
                 # Make minus sign bigger and add space
-                val_txt = val_txt.replace("-", "− ")
+                val_txt = val_txt.replace("-", "- ")
                 
                 txt_color = _label_color(color)
                 if not self._label_hide_energies.get():
@@ -6422,7 +6413,7 @@ class PESPlotModule(BaseModule):
                     zorder=5.2,
                 )
                 ax.add_artist(ab)
-                asset_artists[i] = ab
+                asset_artists= ab
             except Exception:
                 continue
 
@@ -6436,13 +6427,13 @@ class PESPlotModule(BaseModule):
             depth_avg = {d: (sum(vs) / len(vs)) for d, vs in depth_to_vals.items()}
             i = 0
             while i < len(depth_keys) - 1:
-                d0 = depth_keys[i]
+                d0 = depth_keys                
                 d1 = depth_keys[i + 1]
                 if abs(depth_avg[d1] - depth_avg[d0]) <= tol:
                     j = i + 1
                     while j < len(depth_keys) - 1 and abs(depth_avg[depth_keys[j + 1]] - depth_avg[depth_keys[j]]) <= tol:
                         j += 1
-                    d_start, d_end = depth_keys[i], depth_keys[j]
+                    d_start, d_end = depth_keys, depth_keys[j]
                     y_pl = sum(depth_avg[depth_keys[k]] for k in range(i, j + 1)) / (j - i + 1)
                     ax.plot([d_start, d_end], [y_pl, y_pl], color="#0f766e", lw=6.5, alpha=0.25, solid_capstyle="round", zorder=2.1)
                     ax.plot([d_start, d_end], [y_pl, y_pl], color="#0f766e", lw=1.7, alpha=0.95, solid_capstyle="round", zorder=2.2)
@@ -6619,8 +6610,8 @@ class PESPlotModule(BaseModule):
                     segs = []
                     segcols = []
                     for i in range(nseg - 1):
-                        segs.append([(axis_data_x, ys[i]), (axis_data_x, ys[i + 1])])
-                        u = ((ys[i] + ys[i + 1]) * 0.5 - y0) / denom
+                        segs.append([(axis_data_x, ys), (axis_data_x, ys[i + 1])])
+                        u = ((ys+ ys[i + 1]) * 0.5 - y0) / denom
                         segcols.append(cmap_ax(u))
                         
                     lc_axis = LineCollection(
@@ -7002,7 +6993,7 @@ class PESPlotModule(BaseModule):
                     try:
                         s = json.loads(self._aks_step_labels.get() or "[]")
                         old_val = s[step_idx].get("label", "")
-                        new_val = _ask_rich_text("Edit Label", "Enter new label text\\n(Supports basic math, e.g. $\Delta G^\ddagger$):", initialvalue=old_val, parent=self._plot_window)
+                        new_val = _ask_rich_text("Edit Label", "Enter new label text\\n(Supports basic math, e.g. $\\Delta G^\\ddagger$):", initialvalue=old_val, parent=self._plot_window)
                         if new_val is not None:
                             s[step_idx]["label"] = new_val.strip()
                             self._aks_step_labels.set(json.dumps(s))
@@ -7088,7 +7079,7 @@ class PESPlotModule(BaseModule):
                 frm = ttk.Frame(dlg, padding=15)
                 frm.pack(fill="both", expand=True)
                 
-                ttk.Label(frm, text="Pathway Settings", font=("Segoe UI", 12, "bold")).pack(pady=(0, 10))
+                ttk.Label(frm, text="Pathway Settings").pack(pady=(0, 10))
                 
                 # Color Selector
                 color_frm = ttk.Frame(frm)
@@ -7832,7 +7823,7 @@ class PESPlotModule(BaseModule):
         main_frame = ttk.Frame(dlg, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(main_frame, text="Eyring Equation Calculator", font=("Segoe UI", 12, "bold")).pack(anchor=tk.W, pady=(0, 10))
+        ttk.Label(main_frame, text="Eyring Equation Calculator").pack(anchor=tk.W, pady=(0, 10))
         ttk.Label(main_frame, text="Calculates rate constant k and half-life t\u2081\u2082 from activation free energy \u0394G\u2021\nor calculates \u0394G\u2021 from a target half-life.", wraplength=450).pack(anchor=tk.W, fill=tk.X, pady=(0, 15))
         
         calc_mode = tk.StringVar(value="halflife")
@@ -7977,7 +7968,7 @@ class PESPlotModule(BaseModule):
         
         res_frame = ttk.LabelFrame(main_frame, text="Result", padding=15)
         res_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-        ttk.Label(res_frame, textvariable=result_text, font=("Segoe UI", 12, "bold"), justify=tk.CENTER).pack(anchor=tk.CENTER, expand=True)
+        ttk.Label(res_frame, textvariable=result_text,  justify=tk.CENTER).pack(anchor=tk.CENTER, expand=True)
         
         _update_calc()
         
@@ -8309,7 +8300,7 @@ class PESPlotModule(BaseModule):
         defaults_btn.configure(menu=defaults_menu)
         defaults_btn.pack(side=tk.RIGHT, padx=(0, 6))
         ttk.Button(exp, text="Copy to Clipboard (PPT)", command=self._copy_plot_to_clipboard).pack(side=tk.RIGHT, padx=(0, 0))
-        ttk.Button(exp, text="Export…", width=10, command=lambda: self._export_current_plot(None)).pack(side=tk.RIGHT, padx=(0, 6))
+        ttk.Button(exp, text="Export...", width=10, command=lambda: self._export_current_plot(None)).pack(side=tk.RIGHT, padx=(0, 6))
 
         host = ttk.Frame(self._plot_window, padding=8)
         host.pack(fill=tk.BOTH, expand=True)
@@ -8451,7 +8442,7 @@ class PESPlotModule(BaseModule):
             
         btn_frame = ttk.Frame(main_frame)
         btn_frame.pack(fill=tk.X)
-        ttk.Button(btn_frame, text="+ Add Step", command=_add_row).pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Add Step", command=_add_row).pack(side=tk.LEFT)
         
         def _save():
             final_steps = []
@@ -8781,7 +8772,7 @@ class PESPlotModule(BaseModule):
             proj = []
             s = min(w, h) * 0.34 * zoom["z"]
             for i,(sym,_,_,_) in enumerate(atoms):
-                x,y,z = _rot(norm[i])
+                x,y,z = _rot(norm)
                 px = w*0.5 + x*s
                 py = h*0.5 - y*s
                 depth = z
@@ -8819,11 +8810,11 @@ class PESPlotModule(BaseModule):
                     ow = 2 if i in selected else 1
                 canvas.create_oval(px-r,py-r,px+r,py+r,fill=fill,outline=outline,width=ow, tags=(f"a_{i}",))
                 if i in selected:
-                    canvas.create_text(px, py-r-10, text=f"{sym}{i}", fill="#111827", font=("Segoe UI", 9, "bold"))
+                    canvas.create_text(px, py-r-10, text=f"{sym}{i}", fill="#111827")
 
             canvas.create_text(
                 10, 10, anchor="nw", fill="#475569",
-                font=("Segoe UI", 9),
+                
                 text="Left click: select atoms | Empty click: clear selection | Right drag: rotate | Wheel: zoom"
             )
 
@@ -8924,7 +8915,7 @@ class PESPlotModule(BaseModule):
                 # Rotated 3D positions in Å (same matrix as live viewer)
                 pos3 = []
                 for i in range(len(atoms)):
-                    x, y, z = _rot(norm[i])
+                    x, y, z = _rot(norm)
                     pos3.append((x * max_r, y * max_r, z * max_r))
                 xs = [p[0] for p in pos3]
                 ys = [p[1] for p in pos3]
@@ -8953,7 +8944,7 @@ class PESPlotModule(BaseModule):
 
                 # Bonds behind atoms (draw outline stroke + colored stroke for "cylinder" look)
                 for i, j in sorted(bonds):
-                    pi, pj = pos3[i], pos3[j]
+                    pi, pj = pos3, pos3[j]
                     is_ts = tuple(sorted((i, j))) in ts_bonds
                     faded = (i in fogged) or (j in fogged)
                     if is_ts:
@@ -9045,7 +9036,7 @@ class PESPlotModule(BaseModule):
                 proj = []
                 s = min(w, h) * 0.34 * zoom["z"]
                 for i, (sym, _, _, _) in enumerate(atoms):
-                    x, y, z = _rot(norm[i])
+                    x, y, z = _rot(norm)
                     sx = w * 0.5 + x * s
                     sy = h * 0.5 - y * s
                     proj.append((i, sym, sx, sy, z))
@@ -9178,8 +9169,8 @@ class PESPlotModule(BaseModule):
             return x_vals[:], y_vals[:]
         cx, cy = [], []
         for i in range(n - 1):
-            x0, x1 = x_vals[i], x_vals[i + 1]
-            y0, y1 = y_vals[i], y_vals[i + 1]
+            x0, x1 = x_vals, x_vals[i + 1]
+            y0, y1 = y_vals, y_vals[i + 1]
             if x1 == x0:
                 continue
             for k in range(points_per_seg):
@@ -9199,8 +9190,8 @@ class PESPlotModule(BaseModule):
             return x_vals[:], y_vals[:]
         cx, cy = [], []
         for i in range(n - 1):
-            x0, x1 = x_vals[i], x_vals[i + 1]
-            y0, y1 = y_vals[i], y_vals[i + 1]
+            x0, x1 = x_vals, x_vals[i + 1]
+            y0, y1 = y_vals, y_vals[i + 1]
             for k in range(points_per_seg):
                 t = k / float(points_per_seg)
                 cx.append(x0 + (x1 - x0) * t)
@@ -9298,7 +9289,7 @@ class PESPlotModule(BaseModule):
             moved_any = False
             bbs = [_bbox(a) for a in artists]
             for i in range(len(artists)):
-                bi = bbs[i]
+                bi = bbs                
                 if bi is None:
                     continue
                 for j in range(i + 1, len(artists)):
@@ -9395,7 +9386,7 @@ class PESPlotModule(BaseModule):
             any_ov = False
             shrunk = False
             for i in range(len(artists)):
-                bi = bbs2[i]
+                bi = bbs2                
                 if bi is None:
                     continue
                 for j in range(i + 1, len(artists)):
@@ -9403,9 +9394,9 @@ class PESPlotModule(BaseModule):
                     if bj is None or not bi.overlaps(bj):
                         continue
                     any_ov = True
-                    fi, fj = _font_size_of(artists[i]), _font_size_of(artists[j])
+                    fi, fj = _font_size_of(artists), _font_size_of(artists[j])
                     if fi is not None and (fj is None or fi >= fj):
-                        shrunk = _shrink_font(artists[i]) or shrunk
+                        shrunk = _shrink_font(artists) or shrunk
                     elif fj is not None:
                         shrunk = _shrink_font(artists[j]) or shrunk
             if not any_ov:
@@ -9515,7 +9506,7 @@ class PESPlotModule(BaseModule):
         main_split.add(right_frm, weight=2)
         
         # Build Left Frame (Table & Controls)
-        ttk.Label(left_frm, text="Intermediates & Energies", font=("Segoe UI", 12, "bold")).pack(anchor="w", pady=(0, 8))
+        ttk.Label(left_frm, text="Intermediates & Energies").pack(anchor="w", pady=(0, 8))
         
         columns = ("name", "energy")
         tree = ttk.Treeview(left_frm, columns=columns, show="headings", height=15)
@@ -9615,15 +9606,15 @@ class PESPlotModule(BaseModule):
                 
                 if is_classic:
                     marker = "o" if "Classic 1" in style else "s"
-                    ax.plot([center_x], [energies[i]], marker=marker, markersize=10, color="#2563eb", zorder=3)
-                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x], [energies], marker=marker, markersize=10, color="#2563eb", zorder=3)
+                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 elif is_aks:
-                    ax.plot([center_x - 0.15, center_x + 0.15], [energies[i], energies[i]], color="#9fc88a", linewidth=9, zorder=3)
-                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x - 0.15, center_x + 0.15], [energies, energies], color="#9fc88a", linewidth=9, zorder=3)
+                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 else:
                     # CCC plateaus
-                    ax.plot([center_x - 0.3, center_x + 0.3], [energies[i], energies[i]], color="#111827", linewidth=7, zorder=3)
-                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x - 0.3, center_x + 0.3], [energies, energies], color="#111827", linewidth=7, zorder=3)
+                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 
                 labels_x.append(center_x)
                 
@@ -9632,18 +9623,18 @@ class PESPlotModule(BaseModule):
                     
                     if is_aks:
                         lx = [prev_center + 0.15, center_x - 0.15]
-                        ly = [energies[i-1], energies[i]]
+                        ly = [energies[i-1], energies]
                         ax.plot(lx, ly, color="#9fc88a", linestyle="-", linewidth=1.8, zorder=1)
                     elif is_classic:
                         ls = ":" if "Classic 1" in style else "-"
                         lw = 3.5 if "Classic 1" in style else 1.0
-                        ax.plot([prev_center, center_x], [energies[i-1], energies[i]], color="#111827", linestyle=ls, linewidth=lw, zorder=1)
+                        ax.plot([prev_center, center_x], [energies[i-1], energies], color="#111827", linestyle=ls, linewidth=lw, zorder=1)
                     else:
                         # CCC gradient connections
                         if "Curved" in style:
-                            lx, ly = PESPlotModule._build_smooth_curve([prev_center + 0.3, center_x - 0.3], [energies[i-1], energies[i]], points_per_seg=36)
+                            lx, ly = PESPlotModule._build_smooth_curve([prev_center + 0.3, center_x - 0.3], [energies[i-1], energies], points_per_seg=36)
                         else:
-                            lx, ly = [prev_center + 0.3, center_x - 0.3], [energies[i-1], energies[i]]
+                            lx, ly = [prev_center + 0.3, center_x - 0.3], [energies[i-1], energies]
                             
                         segments = [[(lx[k], ly[k]), (lx[k + 1], ly[k + 1])] for k in range(len(lx) - 1)]
                         cmap = LinearSegmentedColormap.from_list("peakmap", [(0.00, "#16a34a"), (0.55, "#fde047"), (1.00, "#ef4444")])
@@ -9711,7 +9702,7 @@ class PESPlotModule(BaseModule):
                 os.startfile(os.path.dirname(path))
 
         def edit_temp():
-            new_name = _ask_rich_text("Edit Name (Plot Only)", "Enter temporary name for plot\\n(Supports basic math, e.g. $\Delta G^\ddagger$):", initialvalue=sp.get("plot_name_override", sp.get("name", "")), parent=self._plot_window)
+            new_name = _ask_rich_text("Edit Name (Plot Only)", "Enter temporary name for plot\\n(Supports basic math, e.g. $\\Delta G^\\ddagger$):", initialvalue=sp.get("plot_name_override", sp.get("name", "")), parent=self._plot_window)
             if new_name is not None:
                 sp["plot_name_override"] = new_name.strip()
                 self._render_plot()

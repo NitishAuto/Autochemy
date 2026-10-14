@@ -27,11 +27,6 @@ class BaseModule(ABC):
         pass
     
     @abstractmethod
-    def get_icon(self) -> str:
-        """Return an icon/emoji for the module (for UI display)."""
-        pass
-    
-    @abstractmethod
     def create_ui(self):
         """Create and initialize the module's user interface."""
         pass
@@ -49,7 +44,7 @@ class BaseModule(ABC):
                 if app and hasattr(self, "apply_app_theme"):
                     from modules import app_theme
                     self.apply_app_theme(
-                        app_theme.build_context(app.theme_mode, app.editor_font_pt)
+                        app_theme.build_context(app.theme_mode)
                     )
             except Exception:
                 pass

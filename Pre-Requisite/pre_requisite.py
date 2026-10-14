@@ -59,7 +59,7 @@ class PrerequisiteApp:
         heading = ttk.Label(
             main,
             text="Welcome to AutoChemy Prerequisite Checker",
-            font=("Segoe UI", 12, "bold"),
+            
         )
         heading.pack(anchor="w", pady=(0, 8))
 
