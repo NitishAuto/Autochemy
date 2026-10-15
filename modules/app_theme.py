@@ -104,12 +104,15 @@ def configure_default_fonts(root: tk.Misc) -> None:
             pass
 
 
-def build_context(mode: str) -> Dict[str, Any]:
+def build_context(mode: str, font_pt: int = 12) -> Dict[str, Any]:
     mode = "dark" if mode not in PALETTES else mode
     p = PALETTES[mode]
+    font_pt = max(8, min(24, int(font_pt)))
     return {
         "mode": mode,
         "palette": p,
+        "font_family": DEFAULT_FONT_FAMILY,
+        "font_pt": font_pt,
         "editor_bg": p["editor_bg"],
         "editor_fg": p["editor_fg"],
         "editor_insert": p["editor_insert"],

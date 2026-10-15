@@ -18,6 +18,7 @@ profiling
 # OS/editor clutter
 .DS_Store
 Thumbs.db
+.temp/
 paths.txt
 
 # AutoChemy first-run and user-specific runtime files
@@ -38,3 +39,4 @@ AutoChemy_User_Data/standalone_xtb_job_history.json
 AutoChemy_User_Data/saved_machines.json
 AutoChemy_User_Data/pes_plot_projects.json
 AutoChemy_User_Data/pes_plot_defaults.json
+.aider*

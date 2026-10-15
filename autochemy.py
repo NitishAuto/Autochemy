@@ -131,6 +131,7 @@ class ORCASoftwareSuite:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.theme_mode = "light"
+        self.editor_font_pt = 12
         self.beginner_mode = True
         app_theme.configure_default_fonts(self.root)
         self.style = ttk.Style()
@@ -253,7 +254,7 @@ class ORCASoftwareSuite:
         self._periodic_placeholder_frame = ttk.Frame(self._sidebar_group_body)
         ttk.Label(
             self._periodic_placeholder_frame,
-            text="Periodic tools will be added here later.",
+            text="Structure Generator\n\nOpen a structure to use the embedded ASE GUI.",
             wraplength=180,
             justify=tk.CENTER,
         ).pack(expand=True, fill=tk.BOTH, padx=12, pady=12)
@@ -435,7 +436,7 @@ class ORCASoftwareSuite:
         SoftwarePathDialog(self.root)
 
     def _broadcast_theme(self):
-        ctx = app_theme.build_context(self.theme_mode)
+        ctx = app_theme.build_context(self.theme_mode, self.editor_font_pt)
         ctx["beginner_mode"] = self.beginner_mode
         self._draw_sidebar_header()
         for mod in self.modules.values():
@@ -639,6 +640,9 @@ class ORCASoftwareSuite:
             self._pending_module_sessions = dict(modules_state)
 
         beginner_mode = app_state.get("beginner_mode")
+        editor_font_pt = app_state.get("editor_font_pt")
+        if isinstance(editor_font_pt, int):
+            self.editor_font_pt = max(8, min(24, editor_font_pt))
         if isinstance(beginner_mode, bool):
             self.beginner_mode = beginner_mode
             if self._beginner_mode_var is not None:
@@ -768,6 +772,7 @@ class ORCASoftwareSuite:
             "version": self.SESSION_VERSION,
             "app": {
                 "theme_mode": self.theme_mode,
+                "editor_font_pt": self.editor_font_pt,
                 "beginner_mode": self.beginner_mode,
                 "current_module": self._current_module_name,
                 "window_geometry": self.root.geometry(),
