@@ -3242,7 +3242,11 @@ class InputCreatorModule5:
 
         spacer = ttk.Frame(status_row)
         spacer.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.btn_orca_recheck = ttk.Button(status_row, text="Re-check", command=self._update_local_orca_status)
+        self.btn_orca_recheck = ttk.Button(
+            status_row,
+            text="Re-check",
+            command=lambda: self._update_local_orca_status(prompt=True),
+        )
         self.btn_orca_recheck.pack(side=tk.RIGHT)
         self.btn_orca_quick_search = ttk.Button(status_row, text="Edit paths.txt", command=self._open_master_paths_file)
         self.btn_orca_quick_search.pack(side=tk.RIGHT, padx=(0, 6))
@@ -5916,7 +5920,7 @@ class InputCreatorModule5:
         self.local_job_log_txt.insert(tk.END, "\n[SYSTEM] Local job termination requested.\n")
         self.local_job_status_var.set("Stopping local job...")
 
-    def _update_local_orca_status(self):
+    def _update_local_orca_status(self, prompt=False):
         if not getattr(self, "local_orca_status_var", None):
             return
         is_local = (self.exec_mode.get() or "").strip() == "Local"
@@ -6020,7 +6024,8 @@ class InputCreatorModule5:
         self.local_orca_light_var.set("🔴")
         self.local_orca_status_var.set("paths.txt is broken or ORCA_ROOT is missing.")
         self.local_orca_path_var.set(detail)
-        self._prompt_fix_master_paths(detail)
+        if prompt:
+            self._prompt_fix_master_paths(detail)
         try:
             self.local_orca_help_frame.pack(fill=tk.X, pady=(6, 0))
         except Exception:
