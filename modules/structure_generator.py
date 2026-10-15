@@ -7,6 +7,10 @@ editing atoms, and all of its editor dialogs.
 """
 
 import os
+import json
+import shutil
+import subprocess
+import tempfile
 import traceback
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -373,6 +377,146 @@ class StructureGeneratorModule(BaseModule):
         occupied_volume = float(np.prod(np.minimum(occupied_lengths, cell_lengths)))
         return max(0.0, cell_volume - occupied_volume)
 
+    def _find_packmol(self):
+        executable = shutil.which("packmol")
+        if executable:
+            return executable
+
+        candidates = (
+            os.path.join(os.getcwd(), "paths.txt"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "paths.txt"),
+        )
+        for path in candidates:
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    raw = handle.read()
+                try:
+                    data = json.loads(raw)
+                    paths = data.get("paths", data) if isinstance(data, dict) else {}
+                    configured = (
+                        paths.get("PACKMOL", "")
+                        or paths.get("PACKMOL_PATH", "")
+                        or paths.get("PACKMOL_ROOT", "")
+                    )
+                except (json.JSONDecodeError, AttributeError):
+                    configured = ""
+                    for line in raw.splitlines():
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            if key.strip().upper() in {"PACKMOL", "PACKMOL_PATH", "PACKMOL_ROOT"}:
+                                configured = value.strip().strip('"\'')
+                                break
+                configured = os.path.expanduser(os.path.expandvars(str(configured).strip()))
+                if os.path.isdir(configured):
+                    configured = os.path.join(configured, "packmol")
+                if configured and os.path.isfile(configured) and os.access(configured, os.X_OK):
+                    return configured
+            except OSError:
+                continue
+        return None
+
+    def _packmol_box(self, atoms, vacuum_axes):
+        import numpy as np
+
+        positions = np.asarray(atoms.get_positions(), dtype=float)
+        cell = np.asarray(atoms.get_cell(), dtype=float)
+        lengths = np.linalg.norm(cell, axis=1)
+        lower = np.zeros(3, dtype=float)
+        upper = lengths.copy()
+        spans = positions.max(axis=0) - positions.min(axis=0)
+        gaps = lengths - spans
+        axis = max(vacuum_axes, key=lambda name: gaps["xyz".index(name)])
+        index = "xyz".index(axis)
+        left_gap = positions[:, index].min()
+        right_gap = lengths[index] - positions[:, index].max()
+        if right_gap >= left_gap:
+            lower[index] = positions[:, index].max()
+        else:
+            upper[index] = positions[:, index].min()
+        return lower, upper
+
+    def _run_packmol(self, setup, executable):
+        try:
+            import io
+            from ase import Atom, Atoms
+            from ase.io import read, write
+            import numpy as np
+
+            custom_xyz = setup.get("custom_xyz", "").strip()
+            if not custom_xyz:
+                raise ValueError(
+                    "A solvent XYZ structure is required before Packmol can run. "
+                    "Paste it into the Custom solvent XYZ box."
+                )
+            solvent_atoms = read(io.StringIO(custom_xyz), format="xyz")
+            cation = setup["cation"].strip()
+            anion = setup["anion"].strip()
+            cation_atoms = Atoms([Atom(cation, position=(0.0, 0.0, 0.0))])
+            anion_atoms = Atoms([Atom(anion, position=(0.0, 0.0, 0.0))])
+            active_atoms = self._ase_guis[0].atoms if self._ase_guis else self._images[0]
+            lower, upper = self._packmol_box(active_atoms, setup["vacuum_axes"])
+            box = " ".join(f"{value:.6f}" for value in (*lower, *upper))
+
+            temp_root = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                ".temp",
+            )
+            os.makedirs(temp_root, exist_ok=True)
+            with tempfile.TemporaryDirectory(prefix="packmol_", dir=temp_root) as workdir:
+                solvent_xyz_path = os.path.join(workdir, "solvent.xyz")
+                cation_xyz_path = os.path.join(workdir, "cation.xyz")
+                anion_xyz_path = os.path.join(workdir, "anion.xyz")
+                solvent_path = os.path.join(workdir, "solvent.pdb")
+                cation_path = os.path.join(workdir, "cation.pdb")
+                anion_path = os.path.join(workdir, "anion.pdb")
+                output_path = os.path.join(workdir, "packed.pdb")
+                write(solvent_xyz_path, solvent_atoms, format="xyz")
+                write(cation_xyz_path, cation_atoms, format="xyz")
+                write(anion_xyz_path, anion_atoms, format="xyz")
+                write(solvent_path, solvent_atoms, format="proteindatabank")
+                write(cation_path, cation_atoms, format="proteindatabank")
+                write(anion_path, anion_atoms, format="proteindatabank")
+                input_text = (
+                    "tolerance 2.0\n"
+                    "filetype pdb\n"
+                    f"output {output_path}\n"
+                    f"structure {solvent_path}\n"
+                    f"  number {int(setup['molecule_count'])}\n"
+                    f"  inside box {box}\n"
+                    "end structure\n"
+                    f"structure {cation_path}\n"
+                    f"  number {int(setup['cation_count'])}\n"
+                    f"  inside box {box}\n"
+                    "end structure\n"
+                    f"structure {anion_path}\n"
+                    f"  number {int(setup['anion_count'])}\n"
+                    f"  inside box {box}\n"
+                    "end structure\n"
+                )
+                result = subprocess.run(
+                    [executable],
+                    input=input_text,
+                    text=True,
+                    capture_output=True,
+                    cwd=workdir,
+                    check=False,
+                )
+                if result.returncode != 0 or not os.path.isfile(output_path):
+                    detail = (result.stderr or result.stdout or "Packmol returned no output.").strip()
+                    raise RuntimeError(detail[-1200:])
+                packed_atoms = read(output_path, format="proteindatabank")
+                active_atoms += packed_atoms
+                active_atoms.set_cell(active_atoms.get_cell() if active_atoms.cell.any() else self._images[0].cell)
+                active_atoms.set_pbc(True)
+                active_atoms.wrap()
+                for gui in self._ase_guis:
+                    gui.set_frame(gui.frame)
+            messagebox.showinfo("Add solvent", "Packmol configuration added and wrapped into the cell.", parent=self.main_frame.winfo_toplevel())
+        except Exception as exc:
+            messagebox.showerror("Packmol failed", str(exc), parent=self.main_frame.winfo_toplevel())
+
     def _open_solvent_setup(self, vacuum_axes):
         from modules.solvent_data import SOLVENT_DATA
 
@@ -401,7 +545,7 @@ class StructureGeneratorModule(BaseModule):
             width=42,
         ).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        xyz_box = ttk.LabelFrame(body, text="Custom solvent XYZ (optional)", padding=8)
+        xyz_box = ttk.LabelFrame(body, text="Single-solvent XYZ (required for Packmol)", padding=8)
         xyz_box.pack(fill=tk.X, pady=(0, 8))
         custom_xyz_text = tk.Text(xyz_box, height=5, width=52, wrap=tk.NONE)
         custom_xyz_text.pack(fill=tk.X, expand=True)
@@ -572,6 +716,21 @@ class StructureGeneratorModule(BaseModule):
                     parent=dialog,
                 )
                 return
+            executable = self._find_packmol()
+            if executable is None:
+                messagebox.showerror(
+                    "Packmol not found",
+                    "Packmol is not available in PATH and is not configured in paths.txt.",
+                    parent=dialog,
+                )
+                return
+            if not custom_xyz:
+                messagebox.showerror(
+                    "Missing solvent XYZ",
+                    "Provide the single-solvent XYZ structure before running Packmol.",
+                    parent=dialog,
+                )
+                return
             self._solvent_setup = {
                 "solvent": solvent_var.get(),
                 "custom_xyz": custom_xyz,
@@ -585,6 +744,7 @@ class StructureGeneratorModule(BaseModule):
                 "vacuum_volume_a3": solvent_volume,
             }
             dialog.destroy()
+            self._run_packmol(self._solvent_setup, executable)
 
         ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=(6, 0))
         ttk.Button(buttons, text="Continue", command=confirm).pack(side=tk.RIGHT)

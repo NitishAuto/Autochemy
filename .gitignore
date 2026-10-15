@@ -18,6 +18,7 @@ profiling
 # OS/editor clutter
 .DS_Store
 Thumbs.db
+.temp/
 paths.txt
 
 # AutoChemy first-run and user-specific runtime files
