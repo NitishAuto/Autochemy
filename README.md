@@ -2,7 +2,7 @@ AutoChemy
 
 AutoChemy is a free and user-friendly computational chemistry platform designed to simplify quantum chemistry workflows for students, researchers, and educators. The software provides an integrated graphical environment for preparing, running, and analyzing calculations without requiring extensive command-line experience.
 
-AutoChemy supports both molecular and periodic systems. ORCA and QuantumXOSO are both integrated, enabling workflows for molecular quantum chemistry as well as periodic (solid-state) calculations within a single application.
+AutoChemy supports both molecular and periodic systems. ORCA and Quantum ESPRESSO are both integrated, enabling workflows for molecular quantum chemistry as well as periodic (solid-state) calculations within a single application.
 
 
 Installation Guide video : https://www.youtube.com/watch?v=PWoCmkNO5gs
@@ -10,7 +10,7 @@ Installation Guide video : https://www.youtube.com/watch?v=PWoCmkNO5gs
 Key Features
 Support for molecular and periodic systems
 ORCA integration for molecular quantum chemistry (input generation and job setup)
-QuantumXOSO integration for periodic systems
+Quantum ESPRESSO integration for periodic systems
 xTB-based geometry optimization and semiempirical calculations
 Potential Energy Surface (PES) analysis and plotting
 Conformational sampling and molecular structure analysis
@@ -22,7 +22,7 @@ Local and remote HPC job management support
 Interactive molecular viewers and analysis tools
 Purpose
 
-AutoChemy aims to make computational chemistry more accessible by combining commonly used workflows into a single graphical application. With ORCA and QuantumXOSO integrated, it covers both molecular and periodic systems and is particularly useful for teaching, learning, and performing routine quantum chemistry calculations efficiently.
+AutoChemy aims to make computational chemistry more accessible by combining commonly used workflows into a single graphical application. With ORCA and Quantum ESPRESSO integrated, it covers both molecular and periodic systems and is particularly useful for teaching, learning, and performing routine quantum chemistry calculations efficiently.
 
 Current Release
 
