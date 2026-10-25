@@ -33,6 +33,7 @@ import math
 
 from modules import xtb_support
 from modules.autochemy_viewer import AutoChemyViewer
+from modules.platform_util import launch_program, wheel_scroll_units as _wheel_scroll_units
 from modules.software_manager import SoftwareManager, SoftwarePathDialog, show_software_not_found_dialog
 from modules.bond_reference import show_bond_chart, show_bond_query
 from modules.embedded_terminal import EmbeddedTerminal
@@ -618,19 +619,6 @@ def _parse_tkdnd_file_list(data) -> list[str]:
             return parts
 
     return [_one(part) for part in re.split(r"\s+", s) if part.strip()]
-
-
-def _wheel_scroll_units(event):
-    """Tk on macOS reports small MouseWheel deltas; Windows uses multiples of 120."""
-    delta = int(getattr(event, "delta", 0) or 0)
-    if delta == 0:
-        return 0
-    if sys.platform == "darwin" and abs(delta) < 120:
-        return -1 if delta > 0 else 1
-    units = int(-delta / 120)
-    if units == 0:
-        return -1 if delta > 0 else 1
-    return units
 
 
 # ==========================================
@@ -2303,9 +2291,7 @@ class InputCreatorModule5:
         self.xtb_version_choice = tk.StringVar(value=xtb_support.default_xtb_version_label())
         self.xtb_energy_unit = tk.StringVar(value="kcal/mol")
         self.xtb_solvation_model = tk.StringVar(value="gbe")
-        self.xtb_exe_path = tk.StringVar(
-            value=xtb_support.bundled_xtb_versions().get(xtb_support.default_xtb_version_label(), "")
-        )
+        self.xtb_exe_path = tk.StringVar(value=xtb_support.find_xtb_exe() or "")
         self._last_xtb_scan_meta = None
         self._last_xtb_geom_text = ""
         self._xtb_popen_holder = [None]
@@ -4321,9 +4307,13 @@ class InputCreatorModule5:
         version_cb.grid(row=0, column=1, sticky="w", pady=4)
 
         def _sync_selected_xtb_path(_event=None):
-            selected = xtb_support.bundled_xtb_versions().get(version_cb.get(), "")
-            if selected:
-                self.xtb_exe_path.set(selected)
+            found = xtb_support.find_xtb_exe(version_cb.get(), user_path=self.xtb_exe_path.get())
+            if found:
+                self.xtb_exe_path.set(found)
+            else:
+                bundled = xtb_support.bundled_xtb_versions().get(version_cb.get(), "")
+                if bundled and os.path.isfile(bundled):
+                    self.xtb_exe_path.set(bundled)
 
         version_cb.bind("<<ComboboxSelected>>", _sync_selected_xtb_path)
         _sync_selected_xtb_path()
@@ -4361,7 +4351,7 @@ class InputCreatorModule5:
             p = filedialog.askopenfilename(
                 parent=win,
                 title="Select xtb executable",
-                filetypes=[("Executable", "*.exe"), ("All files", "*.*")],
+                filetypes=[("All files", "*.*"), ("Windows executable", "*.exe")],
             )
             if p:
                 self.xtb_exe_path.set(p)
@@ -6489,7 +6479,7 @@ class InputCreatorModule5:
         if not xtb_exe:
             messagebox.showerror(
                 "xTB not found",
-                "Could not locate the bundled g-xTB executable under external_modules/xtb/g-xtb.",
+                "Could not locate xtb. On Windows use the bundled g-xTB under external_modules/xtb/g-xtb. On Mac/Linux install xtb or set its path in xTB Settings.",
             )
             return None
         try:
@@ -6827,13 +6817,15 @@ class InputCreatorModule5:
         except Exception:
             pass
         self._lw_detached_win = None
-        if self.embed_hwnd:
+        if self.embed_hwnd and os.name == "nt":
             try:
                 SW_HIDE = 0
                 ctypes.windll.user32.ShowWindow(self.embed_hwnd, SW_HIDE)
                 ctypes.windll.user32.DestroyWindow(self.embed_hwnd)
             except Exception:
                 pass
+            self.embed_hwnd = None
+        else:
             self.embed_hwnd = None
         if self.embed_subprocess:
             try:
@@ -7193,20 +7185,7 @@ class InputCreatorModule5:
 
     @staticmethod
     def _popen_viewer_exe(exe, target):
-        exe = os.path.expanduser(os.path.expandvars((exe or "").strip()))
-        if not exe:
-            raise FileNotFoundError("Viewer path is empty")
-        if sys.platform == "darwin" and exe.endswith(".app"):
-            cmd = ["open", "-n", "-a", exe]
-            if target:
-                cmd.extend(["--args", target])
-            return subprocess.Popen(cmd)
-        cwd = os.path.dirname(exe) if os.path.isfile(exe) else None
-        cmd = [exe, target] if target else [exe]
-        try:
-            return subprocess.Popen(cmd, cwd=cwd or None)
-        except TypeError:
-            return subprocess.Popen(cmd)
+        return launch_program(exe, target)
 
     @staticmethod
     def _find_jmol_jar_in_folder(folder):
@@ -9484,7 +9463,8 @@ class InputCreatorModule5:
     # ---------------- xTB Execution ----------------
 
     def _find_xtb_exe(self):
-        return xtb_support.find_xtb_exe(self.xtb_version_choice.get())
+        custom = (self.xtb_exe_path.get() or "").strip()
+        return xtb_support.find_xtb_exe(self.xtb_version_choice.get(), user_path=custom)
 
     def _map_xtb_job(self):
         t = self.task.get()

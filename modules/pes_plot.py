@@ -13,6 +13,7 @@ import subprocess
 
 from modules.base_module import BaseModule
 from modules.orca_parser import ORCAParser
+from modules.platform_util import copy_image_to_clipboard, launch_program, open_path
 
 try:
     import matplotlib
@@ -1984,6 +1985,8 @@ class PESPlotModule(BaseModule):
         )
 
     def _paste_clipboard_image_via_powershell(self, out_path: str) -> bool:
+        if os.name != "nt":
+            return False
         try:
             safe_out = out_path.replace("'", "''")
             ps = (
@@ -2313,20 +2316,12 @@ class PESPlotModule(BaseModule):
                 init_state=None,
             )
         elif viewer == "Chemcraft":
-            def _find_chemcraft():
-                env = os.environ.get("CHEMCRAFT_EXE", "").strip()
-                if env and os.path.isfile(env): return env
-                for name in ("chemcraft", "Chemcraft", "chemistry"):
-                    p = shutil.which(name)
-                    if p and os.path.isfile(p): return p
-                for p in (r"C:\Program Files\Chemcraft\Chemcraft.exe", r"C:\Program Files\Chemcraft\chemistry.exe", r"C:\Program Files (x86)\Chemcraft\Chemcraft.exe", r"C:\Chemcraft\Chemcraft.exe"):
-                    if os.path.isfile(p): return p
-                return None
-            exe = _find_chemcraft()
+            from modules import xtb_support
+            exe = xtb_support.find_chemcraft_exe()
             if not exe:
                 messagebox.showwarning("Chemcraft", "Chemcraft not found.")
                 return
-            subprocess.Popen([exe, xyz])
+            launch_program(exe, xyz)
         elif viewer == "Jmol":
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             jmol_jar = os.path.join(base_dir, "jmol-16.3.55", "Jmol.jar")
@@ -2337,9 +2332,17 @@ class PESPlotModule(BaseModule):
             if env_jar and os.path.isfile(env_jar):
                 subprocess.Popen(["java", "-jar", env_jar, xyz])
                 return
+            for jar in (
+                "/Applications/Jmol.app/Contents/Resources/Jmol.jar",
+                "/usr/local/share/jmol/Jmol.jar",
+                "/opt/homebrew/share/jmol/Jmol.jar",
+            ):
+                if os.path.isfile(jar):
+                    subprocess.Popen(["java", "-jar", jar, xyz])
+                    return
             jmol_exe = shutil.which("jmol") or shutil.which("Jmol")
             if jmol_exe:
-                subprocess.Popen([jmol_exe, xyz])
+                launch_program(jmol_exe, xyz)
                 return
             messagebox.showwarning("Jmol", "Jmol not found.")
 
@@ -5683,19 +5686,17 @@ class PESPlotModule(BaseModule):
             e.pack(side=tk.LEFT, padx=5)
             
             def open_loc(p=path):
-                import os, subprocess
                 if p.lower().endswith(".out"):
                     p_base = p[:-4]
                     if os.path.exists(p_base) and os.path.isdir(p_base):
-                        os.startfile(p_base)
+                        open_path(p_base)
                         return
-                
                 if os.path.exists(p):
-                    subprocess.run(["explorer", "/select,", os.path.normpath(p)])
-                else:
-                    d = os.path.dirname(p)
-                    if os.path.exists(d):
-                        os.startfile(d)
+                    open_path(p, reveal=os.path.isfile(p))
+                    return
+                d = os.path.dirname(p)
+                if os.path.exists(d):
+                    open_path(d)
                         
             ttk.Button(row, text="Open", command=open_loc, width=8).pack(side=tk.LEFT)
             
@@ -8606,21 +8607,7 @@ class PESPlotModule(BaseModule):
                 pad_inches=0.02,
                 facecolor="white",
             )
-            safe = tmp_path.replace("'", "''")
-            ps = (
-                "Add-Type -AssemblyName System.Windows.Forms;"
-                "Add-Type -AssemblyName System.Drawing;"
-                f"[System.Windows.Forms.Clipboard]::SetImage("
-                f"[System.Drawing.Image]::FromFile('{safe}'));"
-            )
-            r = subprocess.run(
-                ["powershell", "-NoProfile", "-Sta", "-Command", ps],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            if r.returncode != 0:
-                raise RuntimeError(r.stderr or r.stdout or "clipboard failed")
+            copy_image_to_clipboard(tmp_path)
             messagebox.showinfo("PES Plot", "Plot copied to clipboard — paste in PowerPoint with Ctrl+V.", parent=self._plot_window if self._plot_window and self._plot_window.winfo_exists() else None)
         except Exception as e:
             messagebox.showerror("PES Plot", f"Could not copy to clipboard.\n{e}\nYou can use Export → PNG and insert the file manually.", parent=self._plot_window if self._plot_window and self._plot_window.winfo_exists() else None)
@@ -9694,12 +9681,12 @@ class PESPlotModule(BaseModule):
                 if shutil.which("acyviewer"):
                     subprocess.Popen(["acyviewer", path])
                 else:
-                    os.startfile(path)
+                    open_path(path)
         
         def open_folder():
             path = sp.get("main_out", "")
             if path and os.path.isfile(path):
-                os.startfile(os.path.dirname(path))
+                open_path(os.path.dirname(path))
 
         def edit_temp():
             new_name = _ask_rich_text("Edit Name (Plot Only)", "Enter temporary name for plot\\n(Supports basic math, e.g. $\\Delta G^\\ddagger$):", initialvalue=sp.get("plot_name_override", sp.get("name", "")), parent=self._plot_window)

@@ -62,7 +62,10 @@ class AboutUsModule(BaseModule):
         
     def _on_mousewheel(self, event):
         if self.is_active:
-            self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            from modules.platform_util import wheel_scroll_units
+            units = wheel_scroll_units(event)
+            if units:
+                self.canvas.yview_scroll(units, "units")
 
     def _rounded(self, x1, y1, x2, y2, r):
         return [

@@ -21,6 +21,9 @@ from tkinter import ttk
 
 
 def default_shell() -> str:
+    if os.name == "nt":
+        comspec = os.environ.get("COMSPEC") or r"C:\Windows\System32\cmd.exe"
+        return comspec
     shell = os.environ.get("SHELL") or ""
     if shell and os.path.isfile(shell) and os.access(shell, os.X_OK):
         return shell

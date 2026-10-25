@@ -126,9 +126,10 @@ class ConformationalSamplingModule(BaseModule):
         left.bind("<Configure>", _sync_left_scroll)
 
         def _on_mousewheel(event):
-            delta = -1 * int(event.delta / 120) if event.delta else 0
-            if delta:
-                left_canvas.yview_scroll(delta, "units")
+            from modules.platform_util import wheel_scroll_units
+            units = wheel_scroll_units(event)
+            if units:
+                left_canvas.yview_scroll(units, "units")
 
         left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 

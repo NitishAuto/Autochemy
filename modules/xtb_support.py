@@ -15,6 +15,8 @@ import subprocess
 import tempfile
 import time
 
+from modules.platform_util import first_existing_file, unix_bin_candidates, which_any
+
 XTB_G_2026_LABEL = "g-xtb (2026)"
 XTB_2024_LABEL = "xtb (2024)"
 XTB_VERSION_LABELS = (XTB_G_2026_LABEL,)
@@ -105,38 +107,60 @@ def windows_to_wsl_path(path: str) -> str:
     return norm
 
 
-def find_xtb_exe(version_label: str | None = None) -> str | None:
+def find_xtb_exe(version_label: str | None = None, user_path: str | None = None) -> str | None:
+    custom = first_existing_file(user_path or "", os.environ.get("XTB_EXE", ""), skip_foreign_exe=True)
+    if custom:
+        return custom
+
     base_dir = _suite_root()
     bundled = bundled_xtb_versions(base_dir)
     candidates = [
         bundled.get(version_label or DEFAULT_XTB_VERSION_LABEL, ""),
         bundled.get(XTB_G_2026_LABEL, ""),
     ]
+    extra: list[str] = []
     for p in candidates:
-        if p and os.path.isfile(p):
-            return p
-    return None
+        if p and p.lower().endswith(".exe"):
+            extra.append(p[:-4])
+            extra.append(os.path.join(os.path.dirname(p), "xtb"))
+    candidates.extend(extra)
+    candidates.extend(unix_bin_candidates("xtb"))
+    found = first_existing_file(*candidates, skip_foreign_exe=True)
+    if found:
+        return found
+    return which_any("xtb", "xtb.exe")
 
 
 def find_crest_exe() -> str | None:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     candidates = [
         os.path.join(base_dir, "external_modules", "xtb", "crest.exe"),
+        os.path.join(base_dir, "external_modules", "xtb", "crest"),
         os.path.join(base_dir, "external_modules", "xtb", "crest-3.0.2", "bin", "crest.exe"),
+        os.path.join(base_dir, "external_modules", "xtb", "crest-3.0.2", "bin", "crest"),
+        os.path.join(base_dir, "external_modules", "crest", "crest-3.0.2", "bin", "crest"),
+        os.path.join(base_dir, "external_modules", "crest", "crest-3.0.2", "bin", "crest.exe"),
         os.path.join(base_dir, "crest", "crest.exe"),
+        os.path.join(base_dir, "crest", "crest"),
         os.path.join(base_dir, "xtb", "crest-3.0.2", "bin", "crest.exe"),
+        os.path.join(base_dir, "xtb", "crest-3.0.2", "bin", "crest"),
         os.path.join(base_dir, "xtb", "crest-3.0.2", "build", "crest.exe"),
+        os.path.join(base_dir, "xtb", "crest-3.0.2", "build", "crest"),
         os.path.join(base_dir, "crest.exe"),
         os.path.join(base_dir, "crest", "bin", "crest.exe"),
+        os.path.join(base_dir, "crest", "bin", "crest"),
         os.path.join(base_dir, "crest-3.0.2", "bin", "crest.exe"),
+        os.path.join(base_dir, "crest-3.0.2", "bin", "crest"),
         os.path.join(base_dir, "crest-3.0.2", "_build", "crest.exe"),
         os.path.join(base_dir, "crest-3.0.2", "build", "crest.exe"),
+        os.path.join(base_dir, "crest-3.0.2", "build", "crest"),
         os.environ.get("CREST_EXE", ""),
     ]
-    for p in candidates:
-        if p and os.path.isfile(p):
-            return p
-    found = shutil.which("crest")
+    candidates.extend(unix_bin_candidates("crest"))
+    found = first_existing_file(*candidates, skip_foreign_exe=True)
+    if found:
+        return found
+    found = which_any("crest", "crest.exe")
     if found:
         return found
     if has_wsl():
@@ -145,17 +169,24 @@ def find_crest_exe() -> str | None:
 
 
 def find_chemcraft_exe() -> str | None:
-    env = (os.environ.get("CHEMCRAFT_EXE") or "").strip()
-    if env and os.path.isfile(env):
+    env = first_existing_file(os.environ.get("CHEMCRAFT_EXE", ""))
+    if env:
         return env
-    candidates = [
+    try:
+        from modules.software_manager import SoftwareManager
+        saved = SoftwareManager.get_software_path("Chemcraft") or SoftwareManager.auto_detect_path("Chemcraft")
+        if saved:
+            return saved
+    except Exception:
+        pass
+    found = first_existing_file(
         r"C:\Program Files\Chemcraft\Chemcraft.exe",
         r"C:\Program Files (x86)\Chemcraft\Chemcraft.exe",
-    ]
-    for p in candidates:
-        if os.path.isfile(p):
-            return p
-    return shutil.which("Chemcraft")
+        r"C:\Chemcraft\Chemcraft.exe",
+    )
+    if found:
+        return found
+    return which_any("chemcraft", "Chemcraft", "chemistry")
 
 
 def default_xtb_work_parent() -> str:

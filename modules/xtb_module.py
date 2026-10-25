@@ -757,7 +757,10 @@ class XTBModule(BaseModule):
     def _save_run_script_dialog(self) -> None:
         exe = xtb_support.find_xtb_exe(self.xtb_version_choice.get())
         if not exe:
-            messagebox.showerror("xTB", "Bundled g-xTB executable was not found under external_modules/xtb/g-xtb.")
+            messagebox.showerror(
+                "xTB",
+                "Could not locate xtb. On Windows use the bundled g-xTB under external_modules/xtb/g-xtb. On Mac/Linux install xtb or put it on PATH.",
+            )
             return
         try:
             chrg = int(self.charge.get())
@@ -814,7 +817,8 @@ class XTBModule(BaseModule):
             messagebox.showerror(
                 "xTB not found",
                 "Could not locate xtb.\n\n"
-                "Expected the bundled g-xTB executable under external_modules/xtb/g-xtb.",
+                "On Windows, the bundled g-xTB lives under external_modules/xtb/g-xtb.\n"
+                "On Mac/Linux, install xtb (Homebrew/conda) or put `xtb` on PATH.",
             )
             return
         cfg = self._build_task_cfg()
