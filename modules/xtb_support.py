@@ -205,7 +205,7 @@ def _detect_unphysical_contacts(atom_lines: list[str], min_dist_ang: float = 0.2
 
     n = len(atoms)
     for i in range(n):
-        si, xi, yi, zi = atoms        
+        si, xi, yi, zi = atoms[i]
         for j in range(i + 1, n):
             sj, xj, yj, zj = atoms[j]
             dx = xi - xj
@@ -1043,18 +1043,18 @@ def dedupe_xyz_file_to_ensemble(
     e_min = min(finite) if finite else None
     use_ewin = e_min is not None
 
-    order = sorted(range(n), key=lambda i: energies if energies == energies else float("inf"))
+    order = sorted(range(n), key=lambda i: energies[i] if energies[i] == energies[i] else float("inf"))
 
     kept_sym: list[list[str]] = []
     kept_coords: list = []
     kept_order: list[int] = []
 
     for i in order:
-        e = energies        
+        e = energies[i]
         if use_ewin and e == e:
             if (e - e_min) * 627.509 > ewin_kcal:
                 continue
-        comment, atom_lines = frames        
+        comment, atom_lines = frames[i]
         parsed = _frame_to_coords(atom_lines)
         if parsed is None:
             continue
@@ -1088,7 +1088,7 @@ def dedupe_xyz_file_to_ensemble(
     try:
         with open(out_ensemble_path, "w", encoding="utf-8", newline="\n") as fh:
             for i in write_sequence:
-                comment, atom_lines = frames                
+                comment, atom_lines = frames[i]
                 fh.write(f"{len(atom_lines)}\n{comment}\n")
                 fh.write("\n".join(atom_lines) + "\n")
     except OSError as exc:
@@ -1181,8 +1181,8 @@ def embed_crest_energy_bar_chart(master, energies: list[float]) -> str:
         n_tbl = min(14, n)
         rows = []
         for i in range(n_tbl):
-            p = pairs            
-            rows.append([str(i + 1), str(p[0]), f"{p[1]:.3f}", f"{pcts:.2f}"])
+            p = pairs[i]
+            rows.append([str(i + 1), str(p[0]), f"{p[1]:.3f}", f"{pcts[i]:.2f}"])
         tbl = ax_tbl.table(
             cellText=rows,
             colLabels=["Rank", "CREST#", "ΔE", "%298K"],

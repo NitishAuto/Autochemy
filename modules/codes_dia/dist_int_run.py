@@ -90,7 +90,7 @@ distortion_1 = [(x - codes.main.frag1_opt_e)*627.509 for x in frag1_sp_data]
 distortion_2 = [(x - codes.main.frag2_opt_e)*627.509 for x in frag2_sp_data]
 total_distortion = [d1 + d2 for d1, d2 in zip(distortion_1, distortion_2)]
 
-interaction = [(comp_sp_data- (frag1_sp_data+ frag2_sp_data)) * 627.509
+interaction = [(comp_sp_data[i] - (frag1_sp_data[i] + frag2_sp_data[i])) * 627.509
                for i in range(len(comp_sp_data))]
 
 

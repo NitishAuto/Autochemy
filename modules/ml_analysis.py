@@ -39,7 +39,7 @@ def plot_ml_results(results_dict):
     axes = axes.flatten()
 
     for i, (model_name, data) in enumerate(results_dict.items()):
-        ax = axes
+        ax = axes[i]
         ax.scatter(data["y_train_true"], data["y_train_pred"],
                    label="Train", alpha=0.6, marker="o")
 

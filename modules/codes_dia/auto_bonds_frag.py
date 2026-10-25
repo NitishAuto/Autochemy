@@ -22,7 +22,7 @@ def get_bonds(df, fac=1.25):
     for i in range(n):
         for j in range(i+1, n):
             dij = d[i,j]
-            if dij > 0.4 and dij <= fac * (r(elems) + r(elems[j])):
+            if dij > 0.4 and dij <= fac * (r(elems[i]) + r(elems[j])):
                 pairs.append((i+1, j+1, round(float(dij),4)))
 
     return pd.DataFrame(pairs, columns=['atom1','atom2','distance'])

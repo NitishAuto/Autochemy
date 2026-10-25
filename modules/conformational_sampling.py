@@ -688,22 +688,22 @@ class ConformationalSamplingModule(BaseModule):
         i = 0
         replaced = False
         while i < len(lines):
-            stripped = lines.strip()
+            stripped = lines[i].strip()
             low = stripped.lower()
             if low.startswith("* xyz") or low.startswith("*xyz"):
                 replaced = True
                 out.append(f"* xyz {ch} {mult}")
                 i += 1
-                while i < len(lines) and lines.strip() != "*":
+                while i < len(lines) and lines[i].strip() != "*":
                     i += 1
                 out.extend(atom_lines)
                 out.append("*")
-                while i < len(lines) and lines.strip() != "*":
+                while i < len(lines) and lines[i].strip() != "*":
                     i += 1
-                if i < len(lines) and lines.strip() == "*":
+                if i < len(lines) and lines[i].strip() == "*":
                     i += 1
                 continue
-            out.append(lines)
+            out.append(lines[i])
             i += 1
         if not replaced:
             body = "\n".join(out).rstrip()
@@ -810,7 +810,7 @@ class ConformationalSamplingModule(BaseModule):
         ]
         start_idx = -1
         for i in range(len(lines) - 1, -1, -1):
-            if any(p.lower() in lines.lower() for p in patterns):
+            if any(p.lower() in lines[i].lower() for p in patterns):
                 start_idx = i
                 break
         if start_idx < 0:
@@ -858,7 +858,7 @@ class ConformationalSamplingModule(BaseModule):
 
         def find_last_orientation(tag: str):
             for i in range(len(lines) - 1, -1, -1):
-                if tag in lines:
+                if tag in lines[i]:
                     return i
             return -1
 
@@ -1368,11 +1368,11 @@ class ConformationalSamplingModule(BaseModule):
         out_dir = os.path.join(folder, "conformers_xyz")
         os.makedirs(out_dir, exist_ok=True)
         if energies:
-            order = sorted(indices, key=lambda i: energies)
+            order = sorted(indices, key=lambda i: energies[i])
         else:
             order = indices
         for rank, i in enumerate(order, start=1):
-            comment, atoms = confs            
+            comment, atoms = confs[i]
             name = f"{rank}_conformer_lowest.xyz" if rank == 1 else f"{rank}_conformer.xyz"
             path = os.path.join(out_dir, name)
             with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -1384,12 +1384,12 @@ class ConformationalSamplingModule(BaseModule):
         out_dir = os.path.join(folder, "orca_inputs")
         os.makedirs(out_dir, exist_ok=True)
         if energies:
-            order = sorted(indices, key=lambda i: energies)
+            order = sorted(indices, key=lambda i: energies[i])
         else:
             order = indices
         template = getattr(self, "_orca_inp_template", None)
         for rank, i in enumerate(order, start=1):
-            _, atoms = confs            
+            _, atoms = confs[i]
             name = f"{rank}_conformer.inp"
             path = os.path.join(out_dir, name)
             atom_lines = list(atoms)

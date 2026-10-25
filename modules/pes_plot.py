@@ -403,14 +403,14 @@ class OrcaPreviewFileDialog(tk.Toplevel):
         bonds = []
         for i in range(len(norm)):
             for j in range(i + 1, len(norm)):
-                sy1 = norm[0].upper()
+                sy1 = norm[i][0].upper()
                 sy2 = norm[j][0].upper()
                 r1 = rad_map.get(sy1, 0.7)
                 r2 = rad_map.get(sy2, 0.7)
                 thresh = (r1 + r2) * 1.3
-                dx = norm[1] - norm[j][1]
-                dy = norm[2] - norm[j][2]
-                dz = norm[3] - norm[j][3]
+                dx = norm[i][1] - norm[j][1]
+                dy = norm[i][2] - norm[j][2]
+                dz = norm[i][3] - norm[j][3]
                 if (dx*dx + dy*dy + dz*dz)**0.5 < thresh:
                     bonds.append((i, j))
                     
@@ -3386,7 +3386,7 @@ class PESPlotModule(BaseModule):
                         nh = max(8, int(pil.height * zoom * z))
                         pil = pil.resize((nw, nh))
                         img = ImageTk.PhotoImage(pil)
-                    self._flow_overlay_tkimgs= img
+                    self._flow_overlay_tkimgs[i] = img
                     c.create_image(ox, oy, image=img, anchor="nw", tags=(tag, "flow_overlay"))
                 except Exception:
                     c.create_text(ox, oy, text="[image error]",  fill="#991b1b", anchor="nw", tags=(tag, "flow_overlay"))
@@ -3520,9 +3520,9 @@ class PESPlotModule(BaseModule):
             i = 0
             n = len(src)
             while i < n:
-                if src== marker:
+                if src[i] == marker:
                     i += 1
-                    if i < n and src== "{":
+                    if i < n and src[i] == "{":
                         j = src.find("}", i + 1)
                         if j == -1:
                             token = src[i + 1 :]
@@ -3538,7 +3538,7 @@ class PESPlotModule(BaseModule):
                         i = j
                     out.append(token.translate(table))
                 else:
-                    out.append(src)
+                    out.append(src[i])
                     i += 1
             return "".join(out)
 
@@ -4128,7 +4128,7 @@ class PESPlotModule(BaseModule):
             # Match intro splash gradient family (green -> yellow -> orange/red).
             palette = ["#16a34a", "#84cc16", "#eab308", "#f59e0b", "#ef4444", "#f59e0b", "#eab308", "#84cc16"]
             i = int(getattr(self, "_plot_anim_phase", 0)) % len(palette)
-            holder.configure(bg=palette)
+            holder.configure(bg=palette[i])
             self._plot_anim_phase = i + 1
             holder.after(140, self._animate_plot_button_border)
         except Exception:
@@ -5356,7 +5356,7 @@ class PESPlotModule(BaseModule):
             sel = lb.curselection()
             if not sel: return
             i = sel[0]
-            real_idx = normals_info[0]
+            real_idx = normals_info[i][0]
             row = self._species_dialog(self.species[real_idx])
             if row:
                 self.species[real_idx].update(row)
@@ -5371,7 +5371,7 @@ class PESPlotModule(BaseModule):
             if not messagebox.askyesno("Confirm", "Delete this normal molecule completely from the project?"):
                 return
             i = sel[0]
-            real_idx = normals_info[0]
+            real_idx = normals_info[i][0]
             del self.species[real_idx]
             self._refresh_ref_values()
             self._recompute()
@@ -5386,8 +5386,8 @@ class PESPlotModule(BaseModule):
             for i in lb.curselection():
                 if not (0 <= i < len(normal_ids)):
                     continue
-                sid = normal_ids                
-                nm = normals_info[1].get("name", f"ID {sid}")
+                sid = normal_ids[i]
+                nm = normals_info[i][1].get("name", f"ID {sid}")
                 prev = self.edge_links.get(edge_key, {}).get("add" if mode == "add" else "remove", {}).get(sid, 1.0)
                 coeff = simpledialog.askfloat(
                     "Stoichiometry",
@@ -5973,7 +5973,7 @@ class PESPlotModule(BaseModule):
                             else:
                                 assigned.append("#f59e0b")  # orange-ish
                 for i, (_mE, p) in enumerate(path_max_energies):
-                    c = assigned                    
+                    c = assigned[i]
                     for k in range(len(p) - 1):
                         path_colors_map[f"{p[k]}_{p[k+1]}"] = c
             elif color_mode == "Black":
@@ -6413,7 +6413,7 @@ class PESPlotModule(BaseModule):
                     zorder=5.2,
                 )
                 ax.add_artist(ab)
-                asset_artists= ab
+                asset_artists[i] = ab
             except Exception:
                 continue
 
@@ -6427,13 +6427,13 @@ class PESPlotModule(BaseModule):
             depth_avg = {d: (sum(vs) / len(vs)) for d, vs in depth_to_vals.items()}
             i = 0
             while i < len(depth_keys) - 1:
-                d0 = depth_keys                
+                d0 = depth_keys[i]
                 d1 = depth_keys[i + 1]
                 if abs(depth_avg[d1] - depth_avg[d0]) <= tol:
                     j = i + 1
                     while j < len(depth_keys) - 1 and abs(depth_avg[depth_keys[j + 1]] - depth_avg[depth_keys[j]]) <= tol:
                         j += 1
-                    d_start, d_end = depth_keys, depth_keys[j]
+                    d_start, d_end = depth_keys[i], depth_keys[j]
                     y_pl = sum(depth_avg[depth_keys[k]] for k in range(i, j + 1)) / (j - i + 1)
                     ax.plot([d_start, d_end], [y_pl, y_pl], color="#0f766e", lw=6.5, alpha=0.25, solid_capstyle="round", zorder=2.1)
                     ax.plot([d_start, d_end], [y_pl, y_pl], color="#0f766e", lw=1.7, alpha=0.95, solid_capstyle="round", zorder=2.2)
@@ -6610,8 +6610,8 @@ class PESPlotModule(BaseModule):
                     segs = []
                     segcols = []
                     for i in range(nseg - 1):
-                        segs.append([(axis_data_x, ys), (axis_data_x, ys[i + 1])])
-                        u = ((ys+ ys[i + 1]) * 0.5 - y0) / denom
+                        segs.append([(axis_data_x, ys[i]), (axis_data_x, ys[i + 1])])
+                        u = ((ys[i] + ys[i + 1]) * 0.5 - y0) / denom
                         segcols.append(cmap_ax(u))
                         
                     lc_axis = LineCollection(
@@ -8772,7 +8772,7 @@ class PESPlotModule(BaseModule):
             proj = []
             s = min(w, h) * 0.34 * zoom["z"]
             for i,(sym,_,_,_) in enumerate(atoms):
-                x,y,z = _rot(norm)
+                x,y,z = _rot(norm[i])
                 px = w*0.5 + x*s
                 py = h*0.5 - y*s
                 depth = z
@@ -8915,7 +8915,7 @@ class PESPlotModule(BaseModule):
                 # Rotated 3D positions in Å (same matrix as live viewer)
                 pos3 = []
                 for i in range(len(atoms)):
-                    x, y, z = _rot(norm)
+                    x, y, z = _rot(norm[i])
                     pos3.append((x * max_r, y * max_r, z * max_r))
                 xs = [p[0] for p in pos3]
                 ys = [p[1] for p in pos3]
@@ -8944,7 +8944,7 @@ class PESPlotModule(BaseModule):
 
                 # Bonds behind atoms (draw outline stroke + colored stroke for "cylinder" look)
                 for i, j in sorted(bonds):
-                    pi, pj = pos3, pos3[j]
+                    pi, pj = pos3[i], pos3[j]
                     is_ts = tuple(sorted((i, j))) in ts_bonds
                     faded = (i in fogged) or (j in fogged)
                     if is_ts:
@@ -9036,7 +9036,7 @@ class PESPlotModule(BaseModule):
                 proj = []
                 s = min(w, h) * 0.34 * zoom["z"]
                 for i, (sym, _, _, _) in enumerate(atoms):
-                    x, y, z = _rot(norm)
+                    x, y, z = _rot(norm[i])
                     sx = w * 0.5 + x * s
                     sy = h * 0.5 - y * s
                     proj.append((i, sym, sx, sy, z))
@@ -9169,8 +9169,8 @@ class PESPlotModule(BaseModule):
             return x_vals[:], y_vals[:]
         cx, cy = [], []
         for i in range(n - 1):
-            x0, x1 = x_vals, x_vals[i + 1]
-            y0, y1 = y_vals, y_vals[i + 1]
+            x0, x1 = x_vals[i], x_vals[i + 1]
+            y0, y1 = y_vals[i], y_vals[i + 1]
             if x1 == x0:
                 continue
             for k in range(points_per_seg):
@@ -9190,8 +9190,8 @@ class PESPlotModule(BaseModule):
             return x_vals[:], y_vals[:]
         cx, cy = [], []
         for i in range(n - 1):
-            x0, x1 = x_vals, x_vals[i + 1]
-            y0, y1 = y_vals, y_vals[i + 1]
+            x0, x1 = x_vals[i], x_vals[i + 1]
+            y0, y1 = y_vals[i], y_vals[i + 1]
             for k in range(points_per_seg):
                 t = k / float(points_per_seg)
                 cx.append(x0 + (x1 - x0) * t)
@@ -9289,7 +9289,7 @@ class PESPlotModule(BaseModule):
             moved_any = False
             bbs = [_bbox(a) for a in artists]
             for i in range(len(artists)):
-                bi = bbs                
+                bi = bbs[i]
                 if bi is None:
                     continue
                 for j in range(i + 1, len(artists)):
@@ -9386,7 +9386,7 @@ class PESPlotModule(BaseModule):
             any_ov = False
             shrunk = False
             for i in range(len(artists)):
-                bi = bbs2                
+                bi = bbs2[i]
                 if bi is None:
                     continue
                 for j in range(i + 1, len(artists)):
@@ -9394,9 +9394,9 @@ class PESPlotModule(BaseModule):
                     if bj is None or not bi.overlaps(bj):
                         continue
                     any_ov = True
-                    fi, fj = _font_size_of(artists), _font_size_of(artists[j])
+                    fi, fj = _font_size_of(artists[i]), _font_size_of(artists[j])
                     if fi is not None and (fj is None or fi >= fj):
-                        shrunk = _shrink_font(artists) or shrunk
+                        shrunk = _shrink_font(artists[i]) or shrunk
                     elif fj is not None:
                         shrunk = _shrink_font(artists[j]) or shrunk
             if not any_ov:
@@ -9606,15 +9606,15 @@ class PESPlotModule(BaseModule):
                 
                 if is_classic:
                     marker = "o" if "Classic 1" in style else "s"
-                    ax.plot([center_x], [energies], marker=marker, markersize=10, color="#2563eb", zorder=3)
-                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x], [energies[i]], marker=marker, markersize=10, color="#2563eb", zorder=3)
+                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 elif is_aks:
-                    ax.plot([center_x - 0.15, center_x + 0.15], [energies, energies], color="#9fc88a", linewidth=9, zorder=3)
-                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x - 0.15, center_x + 0.15], [energies[i], energies[i]], color="#9fc88a", linewidth=9, zorder=3)
+                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 else:
                     # CCC plateaus
-                    ax.plot([center_x - 0.3, center_x + 0.3], [energies, energies], color="#111827", linewidth=7, zorder=3)
-                    ax.text(center_x, energies+ y_offset, f"{energies:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
+                    ax.plot([center_x - 0.3, center_x + 0.3], [energies[i], energies[i]], color="#111827", linewidth=7, zorder=3)
+                    ax.text(center_x, energies[i] + y_offset, f"{energies[i]:.2f}", ha="center", va="bottom", fontsize=14, fontweight="bold", color="#111827")
                 
                 labels_x.append(center_x)
                 
@@ -9623,18 +9623,18 @@ class PESPlotModule(BaseModule):
                     
                     if is_aks:
                         lx = [prev_center + 0.15, center_x - 0.15]
-                        ly = [energies[i-1], energies]
+                        ly = [energies[i-1], energies[i]]
                         ax.plot(lx, ly, color="#9fc88a", linestyle="-", linewidth=1.8, zorder=1)
                     elif is_classic:
                         ls = ":" if "Classic 1" in style else "-"
                         lw = 3.5 if "Classic 1" in style else 1.0
-                        ax.plot([prev_center, center_x], [energies[i-1], energies], color="#111827", linestyle=ls, linewidth=lw, zorder=1)
+                        ax.plot([prev_center, center_x], [energies[i-1], energies[i]], color="#111827", linestyle=ls, linewidth=lw, zorder=1)
                     else:
                         # CCC gradient connections
                         if "Curved" in style:
-                            lx, ly = PESPlotModule._build_smooth_curve([prev_center + 0.3, center_x - 0.3], [energies[i-1], energies], points_per_seg=36)
+                            lx, ly = PESPlotModule._build_smooth_curve([prev_center + 0.3, center_x - 0.3], [energies[i-1], energies[i]], points_per_seg=36)
                         else:
-                            lx, ly = [prev_center + 0.3, center_x - 0.3], [energies[i-1], energies]
+                            lx, ly = [prev_center + 0.3, center_x - 0.3], [energies[i-1], energies[i]]
                             
                         segments = [[(lx[k], ly[k]), (lx[k + 1], ly[k + 1])] for k in range(len(lx) - 1)]
                         cmap = LinearSegmentedColormap.from_list("peakmap", [(0.00, "#16a34a"), (0.55, "#fde047"), (1.00, "#ef4444")])

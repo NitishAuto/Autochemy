@@ -2,6 +2,7 @@ import os
 import json
 import re
 import shutil
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import webbrowser
@@ -63,10 +64,83 @@ class SoftwareManager:
                 _add(raw + ".exe")
 
         if "avogadro" in base:
-            for value in ("avogadro2.exe", "Avogadro2.exe", "avogadro.exe", "Avogadro.exe"):
-                _add(value)
+            if os.name == "nt":
+                for value in ("avogadro2.exe", "Avogadro2.exe", "avogadro.exe", "Avogadro.exe"):
+                    _add(value)
+            else:
+                for value in ("avogadro2", "Avogadro2", "avogadro", "Avogadro"):
+                    _add(value)
 
         return names
+
+    @staticmethod
+    def _macos_app_roots():
+        return [
+            "/Applications",
+            os.path.expanduser("~/Applications"),
+        ]
+
+    @staticmethod
+    def _executable_from_app_bundle(app_path):
+        """Return the launchable binary inside a .app, or the .app itself."""
+        app_path = SoftwareManager._clean_path(app_path)
+        if not app_path:
+            return None
+        macos_dir = os.path.join(app_path, "Contents", "MacOS")
+        if not os.path.isdir(macos_dir):
+            return app_path if os.path.isdir(app_path) else None
+        app_stem = os.path.splitext(os.path.basename(app_path.rstrip(os.sep)))[0]
+        try:
+            names = sorted(os.listdir(macos_dir))
+        except OSError:
+            return app_path
+        preferred = None
+        fallback = None
+        for fn in names:
+            if fn.startswith("."):
+                continue
+            full = os.path.join(macos_dir, fn)
+            if os.path.isfile(full) and os.access(full, os.X_OK):
+                if fn.lower() == app_stem.lower():
+                    preferred = full
+                    break
+                if fallback is None:
+                    fallback = full
+        return preferred or fallback or app_path
+
+    @staticmethod
+    def _find_macos_app(name):
+        if sys.platform != "darwin":
+            return None
+        tokens = SoftwareManager._name_tokens(name)
+        hints = []
+        base = (name or "").strip()
+        if base:
+            hints.append(f"{base}.app")
+        low = base.lower()
+        if "avogadro" in low:
+            hints.extend(["Avogadro2.app", "Avogadro.app"])
+        if "jmol" in low:
+            hints.extend(["Jmol.app", "jmol.app"])
+        if "gaussview" in low or low == "gview":
+            hints.extend(["GaussView.app", "gview.app"])
+        for root in SoftwareManager._macos_app_roots():
+            if not os.path.isdir(root):
+                continue
+            for hint in hints:
+                cand = os.path.join(root, hint)
+                if os.path.isdir(cand):
+                    return SoftwareManager._executable_from_app_bundle(cand)
+            try:
+                for fn in os.listdir(root):
+                    if not fn.endswith(".app"):
+                        continue
+                    stem = fn[:-4].lower()
+                    if any(token in stem for token in tokens):
+                        return SoftwareManager._executable_from_app_bundle(os.path.join(root, fn))
+            except OSError:
+                continue
+        return None
 
     @staticmethod
     def _candidate_score(candidate, root_path="", requested_name=""):
@@ -119,9 +193,18 @@ class SoftwareManager:
         try:
             for cur, dirs, files in os.walk(path):
                 dirs[:] = [d for d in dirs if d.lower() not in {"__pycache__", ".git", "node_modules"}]
+                for d in list(dirs):
+                    if d.endswith(".app"):
+                        found = SoftwareManager._executable_from_app_bundle(os.path.join(cur, d))
+                        if found:
+                            candidates.append(found)
+                        dirs.remove(d)
                 for fn in files:
+                    full = os.path.join(cur, fn)
                     if fn.lower().endswith(".exe"):
-                        candidates.append(os.path.join(cur, fn))
+                        candidates.append(full)
+                    elif os.name != "nt" and os.access(full, os.X_OK) and not fn.startswith("."):
+                        candidates.append(full)
         except (OSError, PermissionError):
             pass
 
@@ -139,6 +222,8 @@ class SoftwareManager:
             return None
         if os.path.isfile(path):
             return path
+        if path.endswith(".app") and os.path.isdir(path):
+            return SoftwareManager._executable_from_app_bundle(path)
 
         if os.path.isdir(path):
             candidates = []
@@ -210,7 +295,7 @@ class SoftwareManager:
 
     @staticmethod
     def auto_detect_path(name):
-        # A simple auto-detect looking in PATH and common Windows folders
+        # PATH first, then macOS .app bundles, then common Windows folders.
         exe_names = SoftwareManager._executable_names_for(name)
         if not exe_names:
             return None
@@ -220,6 +305,13 @@ class SoftwareManager:
             path_found = shutil.which(exe_name)
             if path_found:
                 return path_found
+
+        mac_app = SoftwareManager._find_macos_app(name)
+        if mac_app:
+            return mac_app
+
+        if os.name != "nt":
+            return None
 
         # Common directories
         search_dirs = [
@@ -384,7 +476,18 @@ class AddEditSoftwareDialog(tk.Toplevel):
         ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.LEFT, padx=5)
 
     def _browse(self):
-        path = filedialog.askopenfilename(title="Select Executable", filetypes=[("Executable / JAR Files", "*.exe *.bat *.cmd *.sh *.jar"), ("All Files", "*.*")])
+        if sys.platform == "darwin":
+            path = filedialog.askopenfilename(
+                title="Select executable or JAR",
+                filetypes=[("All Files", "*.*"), ("JAR Files", "*.jar"), ("Shell scripts", "*.sh")],
+            )
+            if not path:
+                path = filedialog.askdirectory(title="Or select a .app bundle / program folder")
+        else:
+            path = filedialog.askopenfilename(
+                title="Select Executable",
+                filetypes=[("Executable / JAR Files", "*.exe *.bat *.cmd *.sh *.jar"), ("All Files", "*.*")],
+            )
         if path:
             self.path_var.set(path)
 

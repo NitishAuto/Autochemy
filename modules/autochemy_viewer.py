@@ -82,8 +82,8 @@ class AutoChemyViewer:
         self.bonds = []
         self.bond_order = {}
         for i in range(len(self.coords)):
-            xi, yi, zi = self.coords            
-            ei = self.elems
+            xi, yi, zi = self.coords[i]
+            ei = self.elems[i]
             ri = self.cov.get(ei, 0.77)
             for j in range(i + 1, len(self.coords)):
                 xj, yj, zj = self.coords[j]
@@ -115,10 +115,16 @@ class AutoChemyViewer:
         self.canvas.bind("<ButtonPress-3>", self._on_press)
         self.canvas.bind("<B3-Motion>", self._on_drag)
         self.canvas.bind("<ButtonRelease-3>", self._on_release)
+        # macOS Control-click / two-button mice often arrive as Button-2.
+        self.canvas.bind("<ButtonPress-2>", self._on_press)
+        self.canvas.bind("<B2-Motion>", self._on_drag)
+        self.canvas.bind("<ButtonRelease-2>", self._on_release)
         self.canvas.bind("<ButtonPress-1>", self._on_press, add="+")
         self.canvas.bind("<B1-Motion>", self._on_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_release, add="+")
         self.canvas.bind("<MouseWheel>", self._on_wheel)
+        self.canvas.bind("<Button-4>", lambda e: self._zoom_by(1.12))
+        self.canvas.bind("<Button-5>", lambda e: self._zoom_by(0.89))
         self.canvas.bind("<Configure>", lambda _e: self.request_draw(force=True))
         self.canvas.bind("<Visibility>", lambda _e: self.request_draw(force=True))
         self.canvas.bind("<Expose>", lambda _e: self.request_draw(force=True))
@@ -224,10 +230,13 @@ class AutoChemyViewer:
     def _on_release(self, _ev):
         self.view["last"] = None
 
-    def _on_wheel(self, ev):
-        step = 1.12 if ev.delta > 0 else 0.89
+    def _zoom_by(self, step):
         self.view["zoom"] = max(0.35, min(4.0, self.view["zoom"] * step))
         self.request_draw(force=True)
+
+    def _on_wheel(self, ev):
+        step = 1.12 if ev.delta > 0 else 0.89
+        self._zoom_by(step)
 
     def draw(self):
         w = max(1, self.canvas.winfo_width())
@@ -238,12 +247,12 @@ class AutoChemyViewer:
         for i, p in enumerate(self.norm):
             x, y, z = self._project(p)
             sx, sy = w * 0.5 + x * sc, h * 0.5 - y * sc
-            self.last= (sx, sy, z)
+            self.last[i] = (sx, sy, z)
             depth.append((z, i))
         depth.sort()
         bd = []
         for i, j in self.bonds:
-            x1, y1, z1 = self.last            
+            x1, y1, z1 = self.last[i]
             x2, y2, z2 = self.last[j]
             bd.append((((z1 + z2) * 0.5), i, j, x1, y1, x2, y2))
         bd.sort()
@@ -281,8 +290,8 @@ class AutoChemyViewer:
                     tube(x1 - px * sep, y1 - py * sep, x2 - px * sep, y2 - py * sep, 3.0)
 
             for _z, i in depth:
-                sx, sy, _ = self.last                
-                sym = self.elems                
+                sx, sy, _ = self.last[i]
+                sym = self.elems[i]
                 zr = max(0.62, min(1.72, self.view["zoom"] ** 0.68))
                 r = self.rad.get(sym, 11.0) * zr * 0.9
                 fill = self.color.get(sym, "#d1d5db")
@@ -308,22 +317,22 @@ class AutoChemyViewer:
             for _z, i, j, x1, y1, x2, y2 in bd:
                 self.canvas.create_line(x1, y1, x2, y2, fill="#7b8794", width=3)
             for _z, i in depth:
-                sx, sy, _ = self.last                
-                sym = self.elems
+                sx, sy, _ = self.last[i]
+                sym = self.elems[i]
                 zr = max(0.62, min(1.72, self.view["zoom"] ** 0.68))
                 r = self.rad.get(sym, 11.0) * zr * 1.5
                 fill = "#f8fafc" if sym == "H" else self.color.get(sym, "#d1d5db")
                 outline = "#9ca3af" if sym == "H" else fill
                 self.canvas.create_oval(sx - r, sy - r, sx + r, sy + r, fill=fill, outline=outline, width=1)
 
-        self.canvas.create_text(8, 8, anchor="nw", fill=self.hint,  text="Right drag: rotate, wheel: zoom, left click: select")
+        self.canvas.create_text(8, 8, anchor="nw", fill=self.hint,  text="Right/Ctrl drag: rotate, wheel: zoom, left click: select")
 
         if getattr(self, "show_labels", False) or getattr(self, "show_numbers", False):
             for _z, i in depth:
-                sx, sy, _ = self.last                
+                sx, sy, _ = self.last[i]
                 text = ""
                 if self.show_labels:
-                    text += self.elems                
+                    text += self.elems[i]
                     if self.show_numbers:
                         text += str(i + 1)
                 
@@ -338,14 +347,14 @@ class AutoChemyViewer:
 
         if len(self.selected_order) == 2:
             i, j = self.selected_order
-            x1, y1, z1 = self.coords            
+            x1, y1, z1 = self.coords[i]
             x2, y2, z2 = self.coords[j]
             dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**0.5
             self.canvas.create_text(8, 28, anchor="nw", fill=self.hint,  text=f"Distance: {dist:.3f} Å")
         elif len(self.selected_order) == 3:
             import math
             i, j, k = self.selected_order
-            x1, y1, z1 = self.coords            
+            x1, y1, z1 = self.coords[i]
             x2, y2, z2 = self.coords[j]
             x3, y3, z3 = self.coords[k]
             v1 = (x1 - x2, y1 - y2, z1 - z2)
@@ -360,7 +369,7 @@ class AutoChemyViewer:
         elif len(self.selected_order) == 4:
             import math
             i, j, k, l = self.selected_order
-            p1, p2, p3, p4 = self.coords, self.coords[j], self.coords[k], self.coords[l]
+            p1, p2, p3, p4 = self.coords[i], self.coords[j], self.coords[k], self.coords[l]
             b1 = (p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2])
             b2 = (p3[0]-p2[0], p3[1]-p2[1], p3[2]-p2[2])
             b3 = (p4[0]-p3[0], p4[1]-p3[1], p4[2]-p3[2])

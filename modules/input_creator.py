@@ -594,17 +594,43 @@ def _parse_tkdnd_file_list(data) -> list[str]:
     def _one(p: str) -> str:
         p = (p or "").strip().strip('"').strip("'")
         if p.lower().startswith("file:"):
-            path = urlparse(p).path
-            p = unquote(path or "")
+            parsed = urlparse(p)
+            path = parsed.path or ""
+            if parsed.netloc and parsed.netloc.lower() not in ("", "localhost", "127.0.0.1"):
+                path = f"/{parsed.netloc}{path}" if path.startswith("/") else f"{parsed.netloc}/{path}"
+            p = unquote(path)
             if os.name == "nt" and len(p) >= 3 and p[0] == "/" and p[2] == ":":
                 p = p[1:]
         return p
+
+    whole = _one(s)
+    if whole and os.path.exists(whole):
+        return [whole]
 
     if "{" in s:
         chunks = re.findall(r"\{([^}]*)\}", s)
         if chunks:
             return [_one(c) for c in chunks if c.strip()]
+
+    if "\n" in s or "\r" in s:
+        parts = [_one(part) for part in re.split(r"[\r\n]+", s) if part.strip()]
+        if parts:
+            return parts
+
     return [_one(part) for part in re.split(r"\s+", s) if part.strip()]
+
+
+def _wheel_scroll_units(event):
+    """Tk on macOS reports small MouseWheel deltas; Windows uses multiples of 120."""
+    delta = int(getattr(event, "delta", 0) or 0)
+    if delta == 0:
+        return 0
+    if sys.platform == "darwin" and abs(delta) < 120:
+        return -1 if delta > 0 else 1
+    units = int(-delta / 120)
+    if units == 0:
+        return -1 if delta > 0 else 1
+    return units
 
 
 # ==========================================
@@ -800,8 +826,8 @@ class FunctionalSelectorPopup(tk.Toplevel):
         self.v_scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         
-        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
-        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(int(-1*(e.delta/120)), "units"))
+        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(_wheel_scroll_units(e), "units"))
+        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(_wheel_scroll_units(e), "units"))
         self.bind("<Control-MouseWheel>", self.do_zoom)
         
         self.build_grid()
@@ -1057,8 +1083,8 @@ class BasisSelectorPopup(tk.Toplevel):
         self.v_scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         
-        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
-        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(int(-1*(e.delta/120)), "units"))
+        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(_wheel_scroll_units(e), "units"))
+        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(_wheel_scroll_units(e), "units"))
         self.bind("<Control-MouseWheel>", self.do_zoom)
         
         self.build_grid()
@@ -1346,8 +1372,8 @@ class SolventSelectorPopup(tk.Toplevel):
         self.v_scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         
-        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
-        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(int(-1*(e.delta/120)), "units"))
+        self.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(_wheel_scroll_units(e), "units"))
+        self.bind("<Shift-MouseWheel>", lambda e: self.canvas.xview_scroll(_wheel_scroll_units(e), "units"))
         self.bind("<Control-MouseWheel>", self.do_zoom)
         
         self.build_grid()
@@ -2361,11 +2387,14 @@ class InputCreatorModule5:
             
             def _on_wheel(e):
                 if canvas.winfo_containing(e.x_root, e.y_root):
+                    units = _wheel_scroll_units(e)
+                    if not units:
+                        return
                     # Check if Shift is held down (state bit 0) for horizontal scroll
                     if e.state & 0x0001:
-                        canvas.xview_scroll(int(-1*(e.delta/120)), "units")
+                        canvas.xview_scroll(units, "units")
                     else:
-                        canvas.yview_scroll(int(-1*(e.delta/120)), "units")
+                        canvas.yview_scroll(units, "units")
                         
             try:
                 self.parent.winfo_toplevel().bind("<MouseWheel>", _on_wheel, add='+')
@@ -4143,14 +4172,13 @@ class InputCreatorModule5:
         self.embed_cb.bind("<<ComboboxSelected>>", self._on_viewer_changed)
         self._refresh_viewer_options()
 
-        if os.name == "nt":
-            self.detach_embed_btn = ttk.Button(
-                embed_ctrl_frame,
-                text="Detach viewer window",
-                command=self._toggle_embed_detach,
-                state="disabled",
-            )
-            self.detach_embed_btn.pack(side=tk.RIGHT, padx=(8, 0))
+        self.detach_embed_btn = ttk.Button(
+            embed_ctrl_frame,
+            text="Detach viewer window",
+            command=self._toggle_embed_detach,
+            state="disabled",
+        )
+        self.detach_embed_btn.pack(side=tk.RIGHT, padx=(8, 0))
 
 
 
@@ -5368,6 +5396,9 @@ class InputCreatorModule5:
                 ms.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
                 if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(ms)):
                     mem_mb = int(ms.ullTotalPhys / (1024 * 1024))
+            elif sys.platform == "darwin":
+                out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True, timeout=3)
+                mem_mb = int(int(out.strip()) / (1024 * 1024))
             elif os.path.isfile("/proc/meminfo"):
                 with open("/proc/meminfo", "r", encoding="utf-8", errors="ignore") as f:
                     txt = f.read()
@@ -5428,10 +5459,42 @@ class InputCreatorModule5:
         hits = []
         seen = set()
         if os.name != "nt":
-            c = shutil.which("orca")
-            if c:
-                return [c]
-            return []
+            hits = []
+            seen = set()
+
+            def _record(path):
+                p = os.path.normpath(os.path.expanduser(path))
+                if p not in seen and os.path.isfile(p) and os.access(p, os.X_OK):
+                    seen.add(p)
+                    hits.append(p)
+
+            which = shutil.which("orca")
+            if which:
+                _record(which)
+            for cand in (
+                "/opt/homebrew/bin/orca",
+                "/usr/local/bin/orca",
+                "/opt/local/bin/orca",
+                os.path.expanduser("~/orca/orca"),
+                os.path.expanduser("~/ORCA/orca"),
+            ):
+                _record(cand)
+            search_roots = [os.path.expanduser("~"), "/opt/homebrew", "/usr/local", "/Applications"]
+            for root in search_roots:
+                if time.time() - start > timeout_s:
+                    break
+                if not os.path.isdir(root):
+                    continue
+                try:
+                    for fn in os.listdir(root):
+                        if "orca" not in fn.lower():
+                            continue
+                        base = os.path.join(root, fn)
+                        _record(os.path.join(base, "orca"))
+                        _record(os.path.join(base, "bin", "orca"))
+                except OSError:
+                    continue
+            return hits
 
         drive_roots = self._windows_drive_roots()
         preferred_subdirs = [
@@ -5680,6 +5743,8 @@ class InputCreatorModule5:
         if os.path.isdir(orca_root):
             exe_name = "orca.exe" if os.name == "nt" else "orca"
             exe = os.path.join(orca_root, exe_name)
+            if not os.path.exists(exe):
+                exe = os.path.join(orca_root, "bin", exe_name)
         else:
             exe = orca_root
 
@@ -5715,8 +5780,8 @@ class InputCreatorModule5:
             "{\n"
             "  \"version\": 1,\n"
             "  \"paths\": {\n"
-            "    \"ORCA_ROOT\": \"C:/path/to/orca\",\n"
-            "    \"ESPRESSO_ROOT\": \"C:/path/to/espresso\"\n"
+            "    \"ORCA_ROOT\": \"C:/path/to/orca  or  /Users/you/orca\",\n"
+            "    \"ESPRESSO_ROOT\": \"C:/path/to/espresso  or  /usr/local/espresso\"\n"
             "  },\n"
             "  \"systems\": {\n"
             "    \"cluster1\": {\n"
@@ -7105,6 +7170,16 @@ class InputCreatorModule5:
             resolved = shutil.which(exe_name)
             if resolved and os.path.isfile(resolved):
                 return resolved
+        if sys.platform == "darwin":
+            for p in (
+                "/Applications/Avogadro2.app",
+                "/Applications/Avogadro.app",
+                os.path.expanduser("~/Applications/Avogadro2.app"),
+                os.path.expanduser("~/Applications/Avogadro.app"),
+            ):
+                resolved = SoftwareManager.resolve_executable_path(p, "Avogadro")
+                if resolved:
+                    return resolved
         for p in (
             r"C:\Program Files\Avogadro2\bin\avogadro2.exe",
             r"C:\Program Files\Avogadro2\bin\Avogadro2.exe",
@@ -7118,7 +7193,15 @@ class InputCreatorModule5:
 
     @staticmethod
     def _popen_viewer_exe(exe, target):
-        cwd = os.path.dirname(exe) if exe and os.path.isfile(exe) else None
+        exe = os.path.expanduser(os.path.expandvars((exe or "").strip()))
+        if not exe:
+            raise FileNotFoundError("Viewer path is empty")
+        if sys.platform == "darwin" and exe.endswith(".app"):
+            cmd = ["open", "-n", "-a", exe]
+            if target:
+                cmd.extend(["--args", target])
+            return subprocess.Popen(cmd)
+        cwd = os.path.dirname(exe) if os.path.isfile(exe) else None
         cmd = [exe, target] if target else [exe]
         try:
             return subprocess.Popen(cmd, cwd=cwd or None)
@@ -7156,6 +7239,16 @@ class InputCreatorModule5:
         env_jar = os.environ.get("JMOL_JAR", "").strip()
         if env_jar and os.path.isfile(env_jar):
             return _cmd("java", "-jar", env_jar)
+
+        if sys.platform == "darwin":
+            for jar in (
+                "/Applications/Jmol.app/Contents/Resources/Jmol.jar",
+                "/Applications/jmol/Jmol.jar",
+                "/usr/local/share/jmol/Jmol.jar",
+                "/opt/homebrew/share/jmol/Jmol.jar",
+            ):
+                if os.path.isfile(jar):
+                    return _cmd("java", "-jar", jar)
 
         saved_jmol = None
         for item in SoftwareManager.load_software():
@@ -7244,9 +7337,6 @@ class InputCreatorModule5:
             messagebox.showerror("Error", f"Failed to launch {viewer}:\n{str(e)}")
 
     def _embed_viewer(self, blank=False):
-        if os.name != "nt":
-            return
-
         viewer = self.embed_viewer_choice.get()
         viewer_norm = str(viewer or "").strip().lower()
         if viewer in ("Lightweight", "ACV ( AutoChemyViewer )"):
@@ -7258,6 +7348,12 @@ class InputCreatorModule5:
             self.struct_outer.config(text="Structure visualization")
             self._show_autochemy_structure(rows)
             self._update_embed_detach_button_state()
+            return
+
+        # Window reparenting relies on Win32; elsewhere external viewers open in their own window.
+        if os.name != "nt":
+            if not blank and self.geom.get("1.0", tk.END).strip():
+                self.view_external(viewer)
             return
         struct_path = None
 
@@ -7347,6 +7443,8 @@ class InputCreatorModule5:
         return hwnds
 
     def _wait_and_reparent(self, pid, attempts, viewer):
+        if os.name != "nt":
+            return
         if attempts > 140:
             try:
                 self.struct_outer.config(text="Structure visualization - Failed to embed")
@@ -9956,6 +10054,16 @@ class InputCreatorModule5:
         else:
             return
 
+        if os.name != "nt":
+            self.struct_outer.config(text=f"Structure visualization - {viewer} (External)")
+            for w in self.embed_host.winfo_children():
+                w.destroy()
+            tk.Label(
+                self.embed_host,
+                text=f"{viewer} opened in a separate window.\nEmbedding external viewers is Windows-only.",
+                bg="#2b2b2b", fg="#0b5cab", font=("Segoe UI", 14, "bold"), justify="center",
+            ).place(relx=0.5, rely=0.5, anchor="center")
+            return
         delay = {"GaussView": 500, "Chemcraft": 500, "Jmol": 100, "Avogadro": 900}.get(viewer, 900 if viewer_norm.startswith("avogadro") else 200)
         self.frame.after(delay, lambda: self._wait_and_reparent(self.embed_subprocess.pid, 0, viewer))
 
@@ -9981,20 +10089,24 @@ class InputCreatorModule5:
             return
             
         viewer_norm = viewer.lower()
-        if viewer_norm.startswith("avogadro"):
-            exe = self._find_avogadro_exe()
-        elif viewer == "Chemcraft":
-            exe = self._find_chemcraft_exe()
-        elif viewer == "Jmol":
-            exe = self._find_jmol_exe()
-        elif viewer == "GaussView":
-            exe = self._find_gaussview_exe()
+        if viewer == "Jmol":
+            cmd = self._find_jmol_command(target_path)
+            if not cmd:
+                show_software_not_found_dialog(viewer, self.parent)
+                return
         else:
-            exe = None
-            
-        if not exe:
-            show_software_not_found_dialog(viewer, self.parent)
-            return
+            if viewer_norm.startswith("avogadro"):
+                exe = self._find_avogadro_exe()
+            elif viewer == "Chemcraft":
+                exe = self._find_chemcraft_exe()
+            elif viewer == "GaussView":
+                exe = self._find_gaussview_exe()
+            else:
+                exe = None
+            if not exe:
+                show_software_not_found_dialog(viewer, self.parent)
+                return
+            cmd = None
             
         for w in self.xtb_viewer_host.winfo_children():
             w.destroy()
@@ -10008,12 +10120,26 @@ class InputCreatorModule5:
         if getattr(self, "xtb_embed_subprocess", None) and self.xtb_embed_subprocess.poll() is None:
             self.xtb_embed_subprocess.terminate()
             
-        self.xtb_embed_subprocess = self._popen_viewer_exe(exe, target_path)
+        if cmd:
+            self.xtb_embed_subprocess = subprocess.Popen(cmd)
+        else:
+            self.xtb_embed_subprocess = self._popen_viewer_exe(exe, target_path)
+        if os.name != "nt":
+            for w in self.xtb_viewer_host.winfo_children():
+                w.destroy()
+            tk.Label(
+                self.xtb_viewer_host,
+                text=f"{viewer} opened in a separate window.\nEmbedding external viewers is Windows-only.",
+                bg="#2b2b2b", fg="#0b5cab", font=("Segoe UI", 14, "bold"), justify="center",
+            ).place(relx=0.5, rely=0.5, anchor="center")
+            return
         delay = {"GaussView": 500, "Chemcraft": 500, "Jmol": 100, "Avogadro": 900}.get(viewer, 900 if viewer_norm.startswith("avogadro") else 200)
         self.frame.after(delay, lambda: self._wait_and_reparent_xtb(self.xtb_embed_subprocess.pid, 0, viewer))
 
     def _wait_and_reparent_xtb(self, pid, attempts, viewer):
         import ctypes
+        if os.name != "nt":
+            return
         if attempts > 140:
             for w in self.xtb_viewer_host.winfo_children():
                 w.destroy()
@@ -10068,6 +10194,8 @@ class InputCreatorModule5:
 
     def _resize_xtb_embedded(self):
         import ctypes
+        if os.name != "nt":
+            return
         if not getattr(self, "xtb_embed_hwnd", None):
             return
         if getattr(self, "xtb_viewer_detached", False):
@@ -10084,6 +10212,8 @@ class InputCreatorModule5:
             
     def _detach_xtb_viewer(self):
         import ctypes
+        if os.name != "nt":
+            return
         if not getattr(self, "xtb_embed_hwnd", None) or getattr(self, "xtb_viewer_detached", False):
             return
         self.xtb_viewer_detached = True
