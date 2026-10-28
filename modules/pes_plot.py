@@ -1651,9 +1651,10 @@ class PESPlotModule(BaseModule):
         ref_row = ttk.Frame(self.main_frame)
         ref_row.pack(fill=tk.X, pady=(0, 8))
         ttk.Label(ref_row, text="Reference intermediate:").pack(side=tk.LEFT)
-        self.ref_cb = ttk.Combobox(ref_row, textvariable=self._ref_name, state="readonly", width=24, values=[])
+        self.ref_cb = ttk.Combobox(ref_row, textvariable=self._ref_name, state="readonly", width=28, values=[])
         self.ref_cb.pack(side=tk.LEFT, padx=(6, 0))
-        self.ref_cb.bind("<<ComboboxSelected>>", lambda _e: self._recompute())
+        self.ref_cb.bind("<<ComboboxSelected>>", self._on_ref_selected)
+        self._refresh_ref_values()
         ttk.Label(ref_row, text="Unit:").pack(side=tk.LEFT, padx=(12, 4))
         cb_unit = ttk.Combobox(ref_row, textvariable=self._energy_unit, values=["kcal/mol", "eV", "kJ/mol", "Hartree"], state="readonly", width=8)
         cb_unit.pack(side=tk.LEFT)
@@ -2620,13 +2621,67 @@ class PESPlotModule(BaseModule):
         self._refresh_ref_values()
         self._recompute()
 
+    def _intermediate_ref_names(self):
+        names = []
+        seen = set()
+        for sp in self.species:
+            if str(sp.get("kind", "")).strip().lower() != "intermediate":
+                continue
+            name = str(sp.get("name", "")).strip()
+            if name and name not in seen:
+                seen.add(name)
+                names.append(name)
+        return names
+
+    def _style_ref_popdown(self):
+        cb = getattr(self, "ref_cb", None)
+        if cb is None:
+            return
+        try:
+            popdown = cb.tk.call("ttk::combobox::PopdownWindow", cb)
+            listbox = f"{popdown}.f.l"
+            cb.tk.call(
+                listbox,
+                "configure",
+                "-background", "white",
+                "-foreground", "black",
+                "-selectbackground", "#3478F6",
+                "-selectforeground", "white",
+            )
+        except tk.TclError:
+            pass
+
+    def _on_ref_selected(self, event=None):
+        self._recompute()
+        win = getattr(self, "_plot_window", None)
+        if win is None:
+            return
+        try:
+            if win.winfo_exists():
+                self._render_plot()
+        except tk.TclError:
+            pass
+
     def _refresh_ref_values(self):
-        vals = [sp["name"] for sp in self.species if sp.get("kind", "").strip().lower() == "intermediate" and str(sp.get("name", "")).strip()]
-        self.ref_cb.configure(values=vals)
-        if vals and self._ref_name.get() not in vals:
+        cb = getattr(self, "ref_cb", None)
+        if cb is None:
+            return
+        vals = self._intermediate_ref_names()
+        current = (self._ref_name.get() or "").strip()
+        try:
+            cb.configure(values=vals)
+        except tk.TclError:
+            return
+        if vals and current not in vals:
             self._ref_name.set(vals[0])
-        if not vals:
+        elif not vals:
             self._ref_name.set("")
+        else:
+            try:
+                cb.set(current)
+            except tk.TclError:
+                pass
+        self._style_ref_popdown()
 
     def _extract_species_energy(self, sp):
         main_out = (sp.get("main_out") or "").strip()
@@ -2738,6 +2793,7 @@ class PESPlotModule(BaseModule):
         self._ensure_species_ids()
         self.species = [sp for sp in self.species if sp.get("kind") != "Normal"] + [sp for sp in self.species if sp.get("kind") == "Normal"]
         self._prune_edge_links()
+        self._refresh_ref_values()
         for iid in self.tree.get_children():
             self.tree.delete(iid)
         if not self.species:
@@ -4609,6 +4665,7 @@ class PESPlotModule(BaseModule):
         # Determine highest species ID to avoid collisions later
         self._next_species_id = max([s.get("id", 0) for s in self.species] + [0]) + 1
         self._refresh_color_controls()
+        self._refresh_ref_values()
         self._recompute()
 
     def _import_project_json(self):
