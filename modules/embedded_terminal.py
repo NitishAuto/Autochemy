@@ -41,6 +41,53 @@ def paramiko_available() -> bool:
         return False
 
 
+def build_system_ssh_command(
+    ssh_bin: str,
+    host: str,
+    username: str,
+    port: int = 22,
+    key_filename: str = "",
+) -> list[str]:
+    """OpenSSH flags that avoid agent key-spray and skip stored host keys.
+
+    HPC login VIPs often present a different host key per backend node.
+    AutoChemy therefore does not read or write ~/.ssh/known_hosts.
+    """
+    port = int(port or 22)
+    null_hosts = os.devnull
+    cmd = [
+        ssh_bin,
+        "-tt",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", f"UserKnownHostsFile={null_hosts}",
+        "-o", f"GlobalKnownHostsFile={null_hosts}",
+        "-o", "ConnectTimeout=60",
+        "-o", "ServerAliveInterval=30",
+        "-o", "ServerAliveCountMax=3",
+        "-o", "GSSAPIAuthentication=no",
+        "-o", "NumberOfPasswordPrompts=3",
+        "-o", "IdentityAgent=none",
+        "-p", str(port),
+    ]
+    key = (key_filename or "").strip()
+    if key:
+        cmd.extend([
+            "-i", key,
+            "-o", "IdentitiesOnly=yes",
+            "-o", "PreferredAuthentications=publickey,keyboard-interactive,password",
+        ])
+    else:
+        # Do not spray ssh-agent keys. Keep keyboard-interactive so HPC
+        # captcha / OTP prompts can appear (PubkeyAuthentication=no skips them
+        # on some clusters and yields an immediate Permission denied).
+        cmd.extend([
+            "-o", "IdentitiesOnly=yes",
+            "-o", "PreferredAuthentications=keyboard-interactive,password",
+        ])
+    cmd.append(f"{username}@{host}")
+    return cmd
+
+
 def set_winsize(fd: int, rows: int, cols: int) -> None:
     import fcntl
     import termios
@@ -294,7 +341,9 @@ class TerminalSession:
         self._stop = threading.Event()
 
     def start(self) -> None:
+        import fcntl
         import pty
+        import termios
 
         master, slave = pty.openpty()
         set_winsize(master, self.rows, self.cols)
@@ -303,6 +352,18 @@ class TerminalSession:
         env["COLUMNS"] = str(self.cols)
         env["LINES"] = str(self.rows)
         env.setdefault("LANG", "en_US.UTF-8")
+        # Askpass would skip the in-terminal captcha/password and fail closed.
+        env.pop("SSH_ASKPASS", None)
+        env["SSH_ASKPASS_REQUIRE"] = "never"
+
+        def _claim_controlling_tty():
+            # start_new_session calls setsid(); ssh needs this pty as the
+            # controlling terminal or keyboard-interactive never prompts.
+            try:
+                fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+            except OSError:
+                pass
+
         try:
             self.proc = subprocess.Popen(
                 self.command,
@@ -310,6 +371,7 @@ class TerminalSession:
                 stdout=slave,
                 stderr=slave,
                 start_new_session=True,
+                preexec_fn=_claim_controlling_tty,
                 env=env,
                 close_fds=True,
             )
@@ -488,24 +550,34 @@ class SSHSession:
         self._emit(f"Connecting to {target} ...\r\n")
 
         client = paramiko.SSHClient()
+        # Do not load or write ~/.ssh/known_hosts. HPC VIPs rotate host keys.
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        use_key = bool(self.key_filename)
         connect_kw = {
             "hostname": self.host,
             "port": self.port,
             "username": self.username,
-            "timeout": 25,
-            "banner_timeout": 30,
+            "timeout": 60,
+            "banner_timeout": 60,
             "auth_timeout": 45,
-            "allow_agent": True,
-            "look_for_keys": not bool(self.key_filename),
+            "allow_agent": False,
+            "look_for_keys": False,
+            "gss_auth": False,
+            "gss_kex": False,
         }
         if self.password:
             connect_kw["password"] = self.password
-        if self.key_filename:
+        if use_key:
             if not os.path.isfile(self.key_filename):
                 raise FileNotFoundError(f"SSH key not found: {self.key_filename}")
             connect_kw["pkey"] = self._load_private_key(paramiko, self.key_filename)
 
+        try:
+            import inspect
+            allowed = inspect.signature(client.connect).parameters
+            connect_kw = {k: v for k, v in connect_kw.items() if k in allowed}
+        except Exception:
+            pass
         try:
             client.connect(**connect_kw)
         except paramiko.AuthenticationException:
@@ -702,24 +774,15 @@ class EmbeddedTerminal(ttk.Frame):
         ssh_bin = shutil.which("ssh")
         use_system = prefer_system_ssh or not password
         if use_system and ssh_bin:
-            # accept-new = auto-answer the first-time "Are you sure... yes/no?"
-            # host-key prompt (no typing "yes"). Changed keys are repaired by
-            # the UI layer (ssh-keygen -R + one reconnect).
-            cmd = [
+            # StrictHostKeyChecking=no + dummy known_hosts: HPC login farms
+            # often present a new host key per node. Do not touch ~/.ssh/known_hosts.
+            cmd = build_system_ssh_command(
                 ssh_bin,
-                "-tt",
-                "-o",
-                "StrictHostKeyChecking=accept-new",
-                "-o",
-                "UpdateHostKeys=yes",
-                "-o",
-                "ConnectTimeout=25",
-                "-p",
-                str(int(port or 22)),
-                f"{username}@{host}",
-            ]
-            if key_filename:
-                cmd[1:1] = ["-i", key_filename]
+                host=host,
+                username=username,
+                port=port,
+                key_filename=key_filename,
+            )
             self.open(cmd)
             self.text.focus_set()
             return (

@@ -1947,30 +1947,42 @@ class InputCreatorModule5:
         except Exception:
             return ""
 
+    def _hpc_ssh_cooling_down(self) -> bool:
+        return time.time() < float(getattr(self, "_hpc_ssh_cooldown_until", 0) or 0)
+
     def _update_hpc_ssh_buttons(self, connected):
+        cooling = self._hpc_ssh_cooling_down()
         if hasattr(self, "btn_hpc_ssh_connect"):
-            self.btn_hpc_ssh_connect.config(state=tk.DISABLED if connected else tk.NORMAL)
+            self.btn_hpc_ssh_connect.config(state=tk.DISABLED if connected or cooling else tk.NORMAL)
         if hasattr(self, "btn_hpc_ssh_disconnect"):
             self.btn_hpc_ssh_disconnect.config(state=tk.NORMAL if connected else tk.DISABLED)
 
-    def _forget_ssh_host_key(self, host: str) -> bool:
-        """Remove a stale known_hosts entry so the next connect can trust the new key."""
-        host = (host or "").strip()
-        if not host:
-            return False
-        keygen = shutil.which("ssh-keygen")
-        if not keygen:
-            return False
-        try:
-            subprocess.run(
-                [keygen, "-R", host],
-                check=False,
-                capture_output=True,
-                text=True,
+    def _start_hpc_ssh_cooldown(self, seconds: int = 15, reason: str = ""):
+        self._hpc_ssh_cooldown_until = time.time() + max(1, int(seconds))
+        if reason:
+            self.ssh_status.set(reason)
+        self._update_hpc_ssh_buttons(False)
+        self._tick_hpc_ssh_cooldown()
+
+    def _tick_hpc_ssh_cooldown(self):
+        job = getattr(self, "_hpc_ssh_cooldown_job", None)
+        if job is not None:
+            try:
+                self.frame.after_cancel(job)
+            except Exception:
+                pass
+            self._hpc_ssh_cooldown_job = None
+        remaining = int(self._hpc_ssh_cooldown_until - time.time())
+        if remaining > 0:
+            self.ssh_status.set(
+                f"Login failed. Wait {remaining}s before connecting again (avoids HPC lockout)."
             )
-            return True
-        except Exception:
-            return False
+            self._update_hpc_ssh_buttons(False)
+            self._hpc_ssh_cooldown_job = self.frame.after(1000, self._tick_hpc_ssh_cooldown)
+            return
+        self._hpc_ssh_cooldown_until = 0.0
+        self._update_hpc_ssh_buttons(False)
+        self.ssh_status.set("Not connected. You can try Connect SSH again.")
 
     def _connect_hpc_ssh(self, auto_retry: bool = False):
         host = (self.ssh_host.get() or "").strip()
@@ -1984,6 +1996,14 @@ class InputCreatorModule5:
         if not host or not user:
             messagebox.showwarning("SSH", "Enter the HPC host and username first.", parent=self.parent)
             return
+        if not auto_retry and self._hpc_ssh_cooling_down():
+            remaining = max(1, int(self._hpc_ssh_cooldown_until - time.time()))
+            messagebox.showinfo(
+                "SSH",
+                f"Wait {remaining}s before connecting again so the HPC does not lock your account.",
+                parent=self.parent,
+            )
+            return
         term = getattr(self, "hpc_terminal", None)
         if term is None:
             return
@@ -1991,12 +2011,9 @@ class InputCreatorModule5:
             messagebox.showinfo("SSH", "Already connected. Disconnect first.", parent=self.parent)
             return
 
-        if not auto_retry:
-            self._hpc_ssh_hostkey_auto_fixed = False
-
         # MobaXterm-style: open system ssh in the embedded PTY so the
         # password / OTP / captcha prompt appears inside the terminal.
-        # First-time host trust is automatic (StrictHostKeyChecking=accept-new).
+        # Host keys are not stored (HPC login VIPs often change per node).
         self.ssh_status.set(f"Connecting to {user}@{host}:{port} ...")
         self._update_hpc_ssh_buttons(True)
         try:
@@ -2021,7 +2038,8 @@ class InputCreatorModule5:
         if term is not None:
             term.close()
         self._update_hpc_ssh_buttons(False)
-        self.ssh_status.set("Not connected.")
+        if not self._hpc_ssh_cooling_down():
+            self.ssh_status.set("Not connected.")
 
     def _paste_hpc_ssh(self):
         term = getattr(self, "hpc_terminal", None)
@@ -2043,28 +2061,33 @@ class InputCreatorModule5:
             text = term.text.get("1.0", tk.END)
         except Exception:
             text = ""
-        host_key_failed = (
-            "Host key verification failed" in text
-            or "REMOTE HOST IDENTIFICATION HAS CHANGED" in text
+        lowered = text.lower()
+        auth_failed = (
+            "too many authentication failures" in lowered
+            or "permission denied" in lowered
+            or "authentication failed" in lowered
+            or "maxauthtries" in lowered
         )
-        if host_key_failed and not getattr(self, "_hpc_ssh_hostkey_auto_fixed", False):
-            host = (self.ssh_host.get() or "").strip()
-            self._hpc_ssh_hostkey_auto_fixed = True
-            if host and self._forget_ssh_host_key(host):
-                self.ssh_status.set(
-                    f"Host key for {host} was outdated — updated automatically. Reconnecting…"
-                )
-                try:
-                    term.clear()
-                except Exception:
-                    pass
-                # accept-new trusts the new key on retry — user never types "yes".
-                self.frame.after(250, lambda: self._connect_hpc_ssh(auto_retry=True))
-                return
+        timed_out = (
+            "banner exchange" in lowered
+            or "connection timed out" in lowered
+            or "operation timed out" in lowered
+            or "connection to " in lowered and " timed out" in lowered
+        )
+        if timed_out:
+            host = (self.ssh_host.get() or "").strip() or "this host"
+            campus = bool(re.search(
+                r"\b(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)\d",
+                text,
+            ))
+            extra = " That address is a private campus/VPN IP." if campus else ""
             self.ssh_status.set(
-                "Host key changed but could not update known_hosts automatically. "
-                f"Run: ssh-keygen -R {host or 'HOST'}"
+                f"Timed out before login to {host}.{extra} "
+                "Join the campus network or VPN, then Connect SSH again."
             )
+            return
+        if auth_failed:
+            self._start_hpc_ssh_cooldown(15)
             return
         self.ssh_status.set("Session ended. Click Connect SSH to log in again.")
 
@@ -2333,6 +2356,8 @@ class InputCreatorModule5:
         self.ssh_password = tk.StringVar(value="")
         self.ssh_key = tk.StringVar(value="")
         self.ssh_status = tk.StringVar(value="Not connected.")
+        self._hpc_ssh_cooldown_until = 0.0
+        self._hpc_ssh_cooldown_job = None
         self._master_paths_prompted = False
         self._master_paths_file = ""
         self._master_paths = {"version": 1, "paths": {"ORCA_ROOT": "", "ESPRESSO_ROOT": ""}, "systems": {}}
@@ -3727,7 +3752,7 @@ class InputCreatorModule5:
             height=12,
             placeholder=(
                 "Enter host and username, then click Connect SSH.\n"
-                "Host trust (the 'yes/no' prompt) is handled automatically.\n"
+                "Host keys are not stored (needed for HPC login farms). Campus/VPN hosts can take up to 60s.\n"
                 "Type password / OTP / captcha answers in this terminal when asked.\n"
             ),
         )
