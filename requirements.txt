@@ -3,3 +3,4 @@ numpy>=1.24
 matplotlib>=3.7
 pillow>=10.0
 ase>=3.26
+pymatgen
