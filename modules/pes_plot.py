@@ -2428,16 +2428,18 @@ class PESPlotModule(BaseModule):
     def _species_dialog(self, row=None):
         top = tk.Toplevel(self.main_frame.winfo_toplevel())
         top.title("Edit species" if row else "Add species / TS")
-        top.geometry("760x400")
-        top.minsize(680, 360)
+        top.geometry("760x520")
+        top.minsize(680, 440)
         body = ttk.Frame(top, padding=10)
         body.pack(fill=tk.BOTH, expand=True)
 
         d = row or {}
         name_v = tk.StringVar(value=d.get("name", f"S{len(self.species)+1}"))
         kind_v = tk.StringVar(value=d.get("kind", "Intermediate"))
-        main_v = tk.StringVar(value=d.get("main_out", ""))
-        sp_v = tk.StringVar(value=d.get("sp_out", ""))
+        main_files = {"path": d.get("main_out", "") or "", "remote": d.get("main_remote", "") or ""}
+        sp_files = {"path": d.get("sp_out", "") or "", "remote": d.get("sp_remote", "") or ""}
+        main_v = tk.StringVar(value=main_files["remote"] or main_files["path"])
+        sp_v = tk.StringVar(value=sp_files["remote"] or sp_files["path"])
         img_v = tk.StringVar(value=d.get("image_path", ""))
         scale_v = tk.StringVar(value=str(d.get("stoich", d.get("scale", 1.0))))
         plot_v = tk.BooleanVar(value=bool(d.get("plot", True)))
@@ -2457,6 +2459,64 @@ class PESPlotModule(BaseModule):
         ttk.Label(r2, text="Single-point .out:", width=18).pack(side=tk.LEFT)
         ttk.Entry(r2, textvariable=sp_v).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
         ttk.Button(r2, text="Browse", command=lambda: self._pick_out(sp_v)).pack(side=tk.LEFT)
+
+        from modules.hpc_remote import RemoteOutDialog, copy_remote_out, list_open_remotes
+        open_remotes = list_open_remotes()
+        existing_remote = " | ".join(
+            part for part in (main_files["remote"], sp_files["remote"]) if part
+        )
+        if existing_remote:
+            note_text = existing_remote
+        elif open_remotes:
+            note_text = "Choose which remote, then pick a .out. The cluster path stays in the boxes above."
+        else:
+            note_text = "Log in from Input Creator to choose a remote .out."
+        remote_note = tk.StringVar(value=note_text)
+        remote_labels = [item["label"] for item in open_remotes]
+        remote_by_label = {}
+        for item in open_remotes:
+            name = item["label"]
+            if name in remote_by_label:
+                name = f"{item['label']} ({item['id']})"
+            remote_by_label[name] = item
+        remote_labels = list(remote_by_label.keys())
+        remote_choice = tk.StringVar(value=remote_labels[0] if remote_labels else "")
+
+        r_remote = ttk.Frame(body)
+        r_remote.pack(fill=tk.X, pady=4)
+        ttk.Label(r_remote, text="Remote login:", width=18).pack(side=tk.LEFT)
+        remote_combo = ttk.Combobox(
+            r_remote,
+            textvariable=remote_choice,
+            state="readonly" if remote_labels else "disabled",
+            values=remote_labels,
+            width=28,
+        )
+        remote_combo.pack(side=tk.LEFT, padx=(0, 6))
+
+        def _choose_remote(target_var, store):
+            info = remote_by_label.get(remote_choice.get())
+            if info is None:
+                messagebox.showinfo(
+                    "PES Plot",
+                    "Log in to an HPC from Input Creator first. That login is reused here.",
+                    parent=top,
+                )
+                return
+            picked = RemoteOutDialog(top, info).show()
+            if not picked:
+                return
+            local_path = copy_remote_out(top, info, picked)
+            if not local_path:
+                return
+            store["path"] = local_path
+            store["remote"] = picked
+            target_var.set(picked)
+            remote_note.set(f"{info.get('label') or info.get('id')}: {picked}")
+
+        ttk.Button(r_remote, text="Main .out", command=lambda: _choose_remote(main_v, main_files)).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Button(r_remote, text="SP .out", command=lambda: _choose_remote(sp_v, sp_files)).pack(side=tk.LEFT)
+        ttk.Label(body, textvariable=remote_note, wraplength=700, foreground="#334155").pack(anchor="w", pady=(2, 0))
 
         r2b = ttk.Frame(body); r2b.pack(fill=tk.X, pady=4)
         ttk.Label(r2b, text="Image file:", width=18).pack(side=tk.LEFT)
@@ -2485,20 +2545,35 @@ class PESPlotModule(BaseModule):
             if not name:
                 messagebox.showwarning("PES Plot", "Species name is required.", parent=top)
                 return
-            main_out = main_v.get().strip()
-            if main_out and not os.path.isfile(main_out):
-                messagebox.showwarning("PES Plot", "Main ORCA .out file path is invalid.", parent=top)
+            def _resolve_out(shown, store, title):
+                shown = (shown or "").strip()
+                if not shown:
+                    return "", ""
+                if os.path.isfile(shown):
+                    return shown, ""
+                cached = store.get("path") or ""
+                remote_path = store.get("remote") or ""
+                if shown == remote_path and cached and os.path.isfile(cached):
+                    return cached, remote_path
+                messagebox.showwarning("PES Plot", f"{title} file path is invalid.", parent=top)
+                return None
+
+            resolved_main = _resolve_out(main_v.get(), main_files, "Main ORCA .out")
+            if resolved_main is None:
                 return
-            sp_out = sp_v.get().strip()
-            if sp_out and not os.path.isfile(sp_out):
-                messagebox.showwarning("PES Plot", "Single-point file path is invalid.", parent=top)
+            resolved_sp = _resolve_out(sp_v.get(), sp_files, "Single-point")
+            if resolved_sp is None:
                 return
+            main_out, main_remote = resolved_main
+            sp_out, sp_remote = resolved_sp
             scale = self._parse_num_or_fraction(scale_v.get().strip(), default=1.0)
             out["row"] = {
                 "name": name,
                 "kind": kind_v.get().strip() or "Intermediate",
                 "main_out": main_out,
+                "main_remote": main_remote,
                 "sp_out": sp_out,
+                "sp_remote": sp_remote,
                 "image_path": img_v.get().strip(),
                 "stoich": scale,
                 "plot": bool(plot_v.get()) and kind_v.get().strip() != "Normal",
@@ -2551,7 +2626,9 @@ class PESPlotModule(BaseModule):
             "y": cy / getattr(self, "_flow_zoom", 1.0),
         }
         
-        if kind == "Normal":
+        from modules.hpc_remote import list_open_remotes
+        ask_for_file = kind == "Normal" or (kind in ("Intermediate", "TS") and bool(list_open_remotes()))
+        if ask_for_file:
             row = self._species_dialog(new_sp)
             if row:
                 new_sp.update(row)
@@ -5719,8 +5796,10 @@ class PESPlotModule(BaseModule):
     def _show_path_popup(self, idx, rx, ry):
         sp = self.species[idx]
         paths = []
-        if sp.get("main_out"): paths.append(("Main:", sp["main_out"]))
-        if sp.get("sp_out"): paths.append(("SP/Solv:", sp["sp_out"]))
+        if sp.get("main_remote") or sp.get("main_out"):
+            paths.append(("Main:", sp.get("main_remote") or sp.get("main_out")))
+        if sp.get("sp_remote") or sp.get("sp_out"):
+            paths.append(("SP/Solv:", sp.get("sp_remote") or sp.get("sp_out")))
         if sp.get("image_path"): paths.append(("Image:", sp["image_path"]))
         if not paths:
             return

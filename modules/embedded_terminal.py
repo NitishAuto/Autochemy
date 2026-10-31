@@ -6,6 +6,8 @@ invoke_shell() are drawn here, and keystrokes go back to the same session.
 
 from __future__ import annotations
 
+import errno
+import hashlib
 import os
 import queue
 import select
@@ -41,17 +43,103 @@ def paramiko_available() -> bool:
         return False
 
 
+def control_socket_path(username: str, host: str, port: int = 22) -> str:
+    """Short ControlMaster socket path.
+
+    macOS rejects Unix socket names longer than 104 bytes, so this stays in /tmp.
+    """
+    token = hashlib.sha256(f"{username}@{host}:{int(port or 22)}".encode()).hexdigest()[:16]
+    if os.name == "nt":
+        base = os.environ.get("TEMP") or os.environ.get("TMP") or "."
+        return os.path.join(base, f"ac-{token}")
+    return f"/tmp/ac-{token}"
+
+
+def ssh_mux_options(control_path: str) -> list[str]:
+    """Options for a second ssh/sftp that reuses an already authenticated login."""
+    null_hosts = os.devnull
+    return [
+        "-o", "ControlMaster=no",
+        "-o", f"ControlPath={control_path}",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", f"UserKnownHostsFile={null_hosts}",
+        "-o", f"GlobalKnownHostsFile={null_hosts}",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=20",
+        "-o", "IdentityAgent=none",
+    ]
+
+
+def ssh_slave_command(
+    control_path: str,
+    username: str,
+    host: str,
+    port: int = 22,
+    remote_command: str = "",
+    control_op: str = "",
+) -> list[str]:
+    ssh_bin = shutil.which("ssh") or "ssh"
+    cmd = [
+        ssh_bin,
+        *ssh_mux_options(control_path),
+        "-p", str(int(port or 22)),
+    ]
+    if control_op:
+        cmd.extend(["-O", control_op])
+    cmd.append(f"{username}@{host}")
+    if remote_command and not control_op:
+        cmd.append(remote_command)
+    return cmd
+
+
+def prepare_control_socket(path: str, username: str, host: str, port: int = 22) -> None:
+    """Drop a leftover mux socket so a new login can become the master."""
+    if not path or not os.path.exists(path):
+        return
+    if shutil.which("ssh"):
+        try:
+            subprocess.run(
+                ssh_slave_command(path, username, host, port, control_op="exit"),
+                capture_output=True,
+                timeout=5,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def ssh_control_ready(control_path: str, username: str, host: str, port: int = 22) -> bool:
+    """True once the interactive SSH has finished login and accepts mux clients."""
+    if not control_path or not os.path.exists(control_path) or not shutil.which("ssh"):
+        return False
+    try:
+        proc = subprocess.run(
+            ssh_slave_command(control_path, username, host, port, control_op="check"),
+            capture_output=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
 def build_system_ssh_command(
     ssh_bin: str,
     host: str,
     username: str,
     port: int = 22,
     key_filename: str = "",
+    control_path: str = "",
 ) -> list[str]:
     """OpenSSH flags that avoid agent key-spray and skip stored host keys.
 
     HPC login VIPs often present a different host key per backend node.
     AutoChemy therefore does not read or write ~/.ssh/known_hosts.
+    When control_path is set, this process is the ControlMaster. Later file
+    and job commands reuse it and do not ask for the password again.
     """
     port = int(port or 22)
     null_hosts = os.devnull
@@ -62,13 +150,23 @@ def build_system_ssh_command(
         "-o", f"UserKnownHostsFile={null_hosts}",
         "-o", f"GlobalKnownHostsFile={null_hosts}",
         "-o", "ConnectTimeout=60",
-        "-o", "ServerAliveInterval=30",
-        "-o", "ServerAliveCountMax=3",
+        # One quiet keepalive a minute, same idea as MobaXterm. The count is
+        # high so a slow login node does not make *us* hang up. The session
+        # still ends immediately when the cluster closes it.
+        "-o", "ServerAliveInterval=60",
+        "-o", "ServerAliveCountMax=240",
+        "-o", "TCPKeepAlive=yes",
         "-o", "GSSAPIAuthentication=no",
         "-o", "NumberOfPasswordPrompts=3",
         "-o", "IdentityAgent=none",
         "-p", str(port),
     ]
+    if control_path:
+        cmd.extend([
+            "-o", "ControlMaster=yes",
+            "-o", f"ControlPath={control_path}",
+            "-o", "ControlPersist=no",
+        ])
     key = (key_filename or "").strip()
     if key:
         cmd.extend([
@@ -86,6 +184,31 @@ def build_system_ssh_command(
         ])
     cmd.append(f"{username}@{host}")
     return cmd
+
+
+def shell_prompt_ready(screen_text: str) -> bool:
+    """True when the terminal looks like a logged-in shell, not a password prompt.
+
+    This is read from the local screen only. It does not contact the cluster.
+    """
+    lines = [line.strip() for line in (screen_text or "").replace("\r", "").splitlines() if line.strip()]
+    if not lines:
+        return False
+    last = lines[-1]
+    lowered = last.lower()
+    if any(word in lowered for word in ("password", "passcode", "verification", "otp", "token")):
+        return False
+    looks_like_prompt = last.endswith(("$", "#", "%")) or (
+        last.endswith(">") and len(last) <= 80
+    )
+    if not looks_like_prompt:
+        return False
+    if any(mark in last for mark in ("@", "~", ":", "]")):
+        return True
+    recent = "\n".join(lines[-8:]).lower()
+    if "last login" in recent and "denied" not in lowered:
+        return True
+    return False
 
 
 def set_winsize(fd: int, rows: int, cols: int) -> None:
@@ -434,8 +557,12 @@ class TerminalSession:
         proc = self.proc
         while fd is not None and not self._stop.is_set():
             try:
-                readable, _, _ = select.select([fd], [], [], 0.2)
-            except (OSError, ValueError):
+                readable, _, _ = select.select([fd], [], [], 0.5)
+            except (OSError, ValueError) as exc:
+                if proc is not None and proc.poll() is None and not self._stop.is_set():
+                    if getattr(exc, "errno", None) in (errno.EINTR, errno.EAGAIN, errno.EWOULDBLOCK, None):
+                        time.sleep(0.2)
+                        continue
                 break
             if not readable:
                 if proc is not None and proc.poll() is not None:
@@ -443,9 +570,19 @@ class TerminalSession:
                 continue
             try:
                 data = os.read(fd, 4096)
-            except OSError:
+            except OSError as exc:
+                if getattr(exc, "errno", None) in (errno.EINTR, errno.EAGAIN, errno.EWOULDBLOCK):
+                    continue
+                # A brief read error is not the cluster hanging up. Stay up
+                # while the ssh process itself is still running.
+                if proc is not None and proc.poll() is None and not self._stop.is_set():
+                    time.sleep(0.3)
+                    continue
                 break
             if not data:
+                if proc is not None and proc.poll() is None and not self._stop.is_set():
+                    time.sleep(0.2)
+                    continue
                 break
             self.queue.put(data)
         self.exited = True
@@ -595,7 +732,7 @@ class SSHSession:
         self.client = client
         transport = client.get_transport()
         if transport is not None:
-            transport.set_keepalive(30)
+            transport.set_keepalive(60)
         chan = client.invoke_shell(term="xterm-256color", width=self.cols, height=self.rows)
         chan.settimeout(0.0)
         self.chan = chan
@@ -680,14 +817,31 @@ class EmbeddedTerminal(ttk.Frame):
         self.parser = EscapeParser(self.screen)
         self._exit_noted = False
         self._resize_job = None
+        self.control_path = ""
+        self.ssh_target: tuple[str, str, int] | None = None
+        self._external_text = None
         self.placeholder = placeholder or (
             "Click Connect to open a shell in this pane.\n"
         )
         family = "Menlo" if os.path.exists("/System/Library/Fonts/Menlo.ttc") else "Consolas"
         self.font = tkfont.Font(family=family, size=12)
 
-        self.text = tk.Text(
-            self,
+        self.text, yscroll, xscroll = self._make_text(self, height)
+        self._home_text = self.text
+        self.text.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self._bind_display(self.text)
+        self.bind("<Destroy>", self._on_destroy)
+        self._show_placeholder()
+        self.after(30, self._poll)
+
+    def _make_text(self, parent, height: int) -> tuple[tk.Text, ttk.Scrollbar, ttk.Scrollbar]:
+        text = tk.Text(
+            parent,
             height=height,
             width=80,
             font=self.font,
@@ -703,21 +857,79 @@ class EmbeddedTerminal(ttk.Frame):
             relief=tk.FLAT,
             highlightthickness=0,
         )
-        yscroll = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.text.yview)
-        xscroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.text.xview)
-        self.text.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
-        self.text.grid(row=0, column=0, sticky="nsew")
+        yscroll = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=text.yview)
+        xscroll = ttk.Scrollbar(parent, orient=tk.HORIZONTAL, command=text.xview)
+        text.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        return text, yscroll, xscroll
+
+    def _bind_display(self, text: tk.Text) -> None:
+        text.bind("<Key>", self._on_key)
+        text.bind("<<Paste>>", self._on_paste)
+        text.bind("<Configure>", self._on_configure)
+
+    def _unbind_display(self, text: tk.Text) -> None:
+        for sequence in ("<Key>", "<<Paste>>", "<Configure>"):
+            try:
+                text.unbind(sequence)
+            except tk.TclError:
+                pass
+
+    def detach_into(self, host) -> None:
+        """Show the live session in another window. The SSH process stays put."""
+        if self._external_text is not None and self._external_text.winfo_exists():
+            return
+        text, yscroll, xscroll = self._make_text(host, 24)
+        text.grid(row=0, column=0, sticky="nsew")
         yscroll.grid(row=0, column=1, sticky="ns")
         xscroll.grid(row=1, column=0, sticky="ew")
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        try:
+            host.grid_rowconfigure(0, weight=1)
+            host.grid_columnconfigure(0, weight=1)
+        except tk.TclError:
+            pass
+        self._unbind_display(self._home_text)
+        self._bind_display(text)
+        self._external_text = text
+        self.text = text
+        if self.is_live() or self.screen.text():
+            self._render()
+        else:
+            text.insert("1.0", self.placeholder)
+        text.focus_set()
+        try:
+            self._home_text.configure(state=tk.NORMAL)
+            self._home_text.delete("1.0", tk.END)
+            self._home_text.insert(
+                "1.0",
+                "This terminal is in its own window.\n"
+                "The SSH session stays open. Click Reattach terminal to put it back here.\n",
+            )
+            self._home_text.configure(state=tk.DISABLED)
+        except tk.TclError:
+            pass
 
-        self.text.bind("<Key>", self._on_key)
-        self.text.bind("<<Paste>>", self._on_paste)
-        self.text.bind("<Configure>", self._on_configure)
-        self.bind("<Destroy>", self._on_destroy)
-        self._show_placeholder()
-        self.after(30, self._poll)
+    def reattach_display(self) -> None:
+        """Point the session back at the pane embedded in the HPC tab."""
+        ext = self._external_text
+        if ext is None:
+            return
+        self._external_text = None
+        self.text = self._home_text
+        try:
+            self._home_text.configure(state=tk.NORMAL)
+        except tk.TclError:
+            return
+        self._bind_display(self._home_text)
+        if ext is not None and ext.winfo_exists():
+            self._unbind_display(ext)
+        if self.is_live() or self.screen.text():
+            self._render()
+        else:
+            self._show_placeholder()
+        try:
+            self.text.focus_set()
+        except tk.TclError:
+            pass
 
     def is_live(self) -> bool:
         return self.session is not None and not getattr(self.session, "exited", True)
@@ -731,13 +943,18 @@ class EmbeddedTerminal(ttk.Frame):
         self.screen = VTScreen()
         self.parser = EscapeParser(self.screen)
         self._exit_noted = False
-        self.text.delete("1.0", tk.END)
+        try:
+            self.text.configure(state=tk.NORMAL)
+            self.text.delete("1.0", tk.END)
+        except tk.TclError:
+            pass
 
-    def open(self, command: list[str] | None = None) -> None:
+    def open(self, command: list[str] | None = None, control_path: str = "") -> None:
         if self.is_live():
             self.text.focus_set()
             return
         self.close(show_placeholder=False)
+        self.control_path = control_path or ""
         self._reset_screen()
         rows, cols = self._pixel_size()
         cmd = command or [default_shell(), "-i"]
@@ -776,14 +993,18 @@ class EmbeddedTerminal(ttk.Frame):
         if use_system and ssh_bin:
             # StrictHostKeyChecking=no + dummy known_hosts: HPC login farms
             # often present a new host key per node. Do not touch ~/.ssh/known_hosts.
+            path = control_socket_path(username, host, port)
+            prepare_control_socket(path, username, host, port)
             cmd = build_system_ssh_command(
                 ssh_bin,
                 host=host,
                 username=username,
                 port=port,
                 key_filename=key_filename,
+                control_path=path,
             )
-            self.open(cmd)
+            self.open(cmd, control_path=path)
+            self.ssh_target = (host, username, int(port or 22))
             self.text.focus_set()
             return (
                 f"Opened ssh to {username}@{host}:{port}. "
@@ -823,6 +1044,9 @@ class EmbeddedTerminal(ttk.Frame):
         return f"Connecting to {username}@{host}:{port} ..."
 
     def close(self, show_placeholder: bool = True) -> None:
+        path = self.control_path
+        self.control_path = ""
+        self.ssh_target = None
         session = self.session
         self.session = None
         if session is not None:
@@ -830,10 +1054,19 @@ class EmbeddedTerminal(ttk.Frame):
                 session.close()
             except Exception:
                 pass
+        if path:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
         self.screen = VTScreen()
         self.parser = EscapeParser(self.screen)
         self._exit_noted = True
         if show_placeholder:
+            try:
+                self.text.configure(state=tk.NORMAL)
+            except tk.TclError:
+                pass
             self._show_placeholder()
 
     def clear(self) -> None:

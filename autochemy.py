@@ -86,25 +86,6 @@ class PeriodicPlaceholderModule(BaseModule):
         ).pack(pady=(0, 24))
 
 
-class JobManagerPlaceholderModule(BaseModule):
-    """Temporary placeholder for the future Job Manager workspace."""
-
-    def get_name(self) -> str:
-        return "Job Manager"
-
-    def create_ui(self):
-        self.main_frame = ttk.Frame(self.parent_frame)
-        card = ttk.Frame(self.main_frame)
-        card.pack(expand=True)
-        ttk.Label(card, text="Job Manager").pack(pady=(24, 8))
-        ttk.Label(
-            card,
-            text="Job management tools will be added here later.",
-            
-        ).pack(pady=(0, 24))
-
-
-
 class ORCASoftwareSuite:
     """Main application shell for AutoChemy."""
 
@@ -558,7 +539,13 @@ class ORCASoftwareSuite:
             skipped_modules.append(msg)
             module_classes.append((PeriodicPlaceholderModule, "Periodic"))
 
-        module_classes.append((JobManagerPlaceholderModule, "Job Manager"))
+        try:
+            from modules.job_manager import JobManagerModule
+            module_classes.append((JobManagerModule, "Job Manager"))
+        except Exception as exc:
+            msg = f"Skipping module Job Manager: {exc}"
+            print(msg)
+            skipped_modules.append(msg)
 
         for module_class, module_name in module_classes:
             try:

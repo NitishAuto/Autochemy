@@ -36,7 +36,14 @@ from modules.autochemy_viewer import AutoChemyViewer
 from modules.platform_util import launch_program, wheel_scroll_units as _wheel_scroll_units
 from modules.software_manager import SoftwareManager, SoftwarePathDialog, show_software_not_found_dialog
 from modules.bond_reference import show_bond_chart, show_bond_query
-from modules.embedded_terminal import EmbeddedTerminal
+from modules.embedded_terminal import EmbeddedTerminal, shell_prompt_ready
+from modules.hpc_remote import (
+    HpcFilesWindow,
+    RemoteSSH,
+    close_open_remote,
+    register_open_remote,
+    remote_join,
+)
 
 # ==========================================
 # HPC TEMPLATES (From iitj.py)
@@ -1953,9 +1960,14 @@ class InputCreatorModule5:
     def _update_hpc_ssh_buttons(self, connected):
         cooling = self._hpc_ssh_cooling_down()
         if hasattr(self, "btn_hpc_ssh_connect"):
-            self.btn_hpc_ssh_connect.config(state=tk.DISABLED if connected or cooling else tk.NORMAL)
+            # Stay enabled while other remotes are open, so a second machine
+            # can be added without another login to the one already up.
+            self.btn_hpc_ssh_connect.config(state=tk.DISABLED if cooling else tk.NORMAL)
         if hasattr(self, "btn_hpc_ssh_disconnect"):
-            self.btn_hpc_ssh_disconnect.config(state=tk.NORMAL if connected else tk.DISABLED)
+            has_tab = bool(getattr(self, "_hpc_active_id", ""))
+            self.btn_hpc_ssh_disconnect.config(state=tk.NORMAL if has_tab else tk.DISABLED)
+        if not connected:
+            self._set_hpc_files_ready(False)
 
     def _start_hpc_ssh_cooldown(self, seconds: int = 15, reason: str = ""):
         self._hpc_ssh_cooldown_until = time.time() + max(1, int(seconds))
@@ -1984,6 +1996,130 @@ class InputCreatorModule5:
         self._update_hpc_ssh_buttons(False)
         self.ssh_status.set("Not connected. You can try Connect SSH again.")
 
+    def _hpc_session_id(self, user, host, port) -> str:
+        return f"{user}@{host}:{int(port)}"
+
+    def _hpc_session_label(self, user, host) -> str:
+        machine = self.saved_machine_var.get() if hasattr(self, "saved_machine_var") else "None"
+        if machine and machine != "None" and machine in getattr(self, "saved_machines", {}):
+            data = self.saved_machines[machine]
+            same_host = (data.get("ssh_host") or "").strip() == host
+            same_user = (data.get("ssh_user") or "").strip() == user
+            if same_host and same_user:
+                return machine
+        return f"{user}@{host}"
+
+    def _hpc_queue_for_login(self, user, host) -> str:
+        machine = self.saved_machine_var.get() if hasattr(self, "saved_machine_var") else "None"
+        if machine and machine != "None" and machine in getattr(self, "saved_machines", {}):
+            data = self.saved_machines[machine]
+            same_host = (data.get("ssh_host") or "").strip() == host
+            same_user = (data.get("ssh_user") or "").strip() == user
+            if same_host and same_user and data.get("queue_system"):
+                return str(data.get("queue_system"))
+        return str(self.hpc_queue_system.get() or "SLURM")
+
+    def _show_hpc_session_book(self) -> None:
+        holder = getattr(self, "hpc_term_placeholder", None)
+        book = getattr(self, "hpc_session_book", None)
+        if holder is not None:
+            try:
+                holder.pack_forget()
+            except tk.TclError:
+                pass
+        if book is not None:
+            try:
+                if not book.winfo_ismapped():
+                    book.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            except tk.TclError:
+                pass
+
+    def _hide_hpc_session_book(self) -> None:
+        book = getattr(self, "hpc_session_book", None)
+        holder = getattr(self, "hpc_term_placeholder", None)
+        if book is not None:
+            try:
+                book.pack_forget()
+            except tk.TclError:
+                pass
+        if holder is not None:
+            try:
+                if not holder.winfo_ismapped():
+                    holder.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
+            except tk.TclError:
+                pass
+
+    def _set_active_hpc_session(self, session_id: str) -> None:
+        sess = self._hpc_sessions.get(session_id)
+        self._hpc_active_id = session_id if sess else ""
+        self.hpc_terminal = sess["term"] if sess else None
+        ready = bool(sess and sess.get("ready") and sess["term"].is_live())
+        self._set_hpc_files_ready(ready)
+        self._update_hpc_ssh_buttons(bool(sess and sess["term"].is_live()))
+        if sess and sess["term"].is_live():
+            if ready:
+                self.ssh_status.set(f"{sess['label']} is open. Other remotes stay connected.")
+            else:
+                self.ssh_status.set(f"{sess['label']}: type the password in this terminal if asked.")
+
+    def _select_hpc_session(self, session_id: str) -> None:
+        sess = self._hpc_sessions.get(session_id)
+        if not sess:
+            return
+        book = getattr(self, "hpc_session_book", None)
+        if book is not None:
+            try:
+                book.select(sess["frame"])
+            except tk.TclError:
+                pass
+        self._set_active_hpc_session(session_id)
+
+    def _on_hpc_session_tab(self, _event=None) -> None:
+        book = getattr(self, "hpc_session_book", None)
+        if book is None:
+            return
+        try:
+            current = book.select()
+        except tk.TclError:
+            return
+        for session_id, sess in self._hpc_sessions.items():
+            if str(sess["frame"]) == current:
+                if session_id != self._hpc_active_id:
+                    self._set_active_hpc_session(session_id)
+                return
+
+    def _drop_hpc_session(self, session_id: str) -> None:
+        sess = self._hpc_sessions.pop(session_id, None)
+        if not sess:
+            return
+        close_open_remote(session_id)
+        win = sess.get("files_win")
+        if win is not None:
+            try:
+                if win.winfo_exists():
+                    win.destroy()
+            except tk.TclError:
+                pass
+        try:
+            sess["term"].close()
+        except Exception:
+            pass
+        book = getattr(self, "hpc_session_book", None)
+        frame = sess.get("frame")
+        if book is not None and frame is not None:
+            try:
+                book.forget(frame)
+            except tk.TclError:
+                pass
+        if frame is not None:
+            try:
+                frame.destroy()
+            except tk.TclError:
+                pass
+        if self._hpc_active_id == session_id:
+            self._hpc_active_id = ""
+            self.hpc_terminal = None
+
     def _connect_hpc_ssh(self, auto_retry: bool = False):
         host = (self.ssh_host.get() or "").strip()
         user = (self.ssh_user.get() or "").strip()
@@ -2004,16 +2140,53 @@ class InputCreatorModule5:
                 parent=self.parent,
             )
             return
-        term = getattr(self, "hpc_terminal", None)
-        if term is None:
+        session_id = self._hpc_session_id(user, host, port)
+        existing = self._hpc_sessions.get(session_id)
+        if existing is not None and existing["term"].is_live():
+            self._select_hpc_session(session_id)
+            self.ssh_status.set(f"{existing['label']} is already open. Switched to it. No second login.")
             return
-        if term.is_live():
-            messagebox.showinfo("SSH", "Already connected. Disconnect first.", parent=self.parent)
-            return
+        if existing is not None:
+            self._drop_hpc_session(session_id)
 
-        # MobaXterm-style: open system ssh in the embedded PTY so the
-        # password / OTP / captcha prompt appears inside the terminal.
-        # Host keys are not stored (HPC login VIPs often change per node).
+        book = getattr(self, "hpc_session_book", None)
+        if book is None:
+            return
+        label = self._hpc_session_label(user, host)
+        frame = ttk.Frame(book)
+        term = EmbeddedTerminal(
+            frame,
+            height=12,
+            placeholder=(
+                "Type the password, OTP, or captcha in this terminal when asked.\n"
+                "This login stays open until the cluster closes it or you click Disconnect.\n"
+                "Other remotes stay open while you use this one.\n"
+            ),
+        )
+        term.pack(fill=tk.BOTH, expand=True)
+        book.add(frame, text=label)
+        self._hpc_sessions[session_id] = {
+            "id": session_id,
+            "label": label,
+            "host": host,
+            "user": user,
+            "port": port,
+            "frame": frame,
+            "term": term,
+            "ready": False,
+            "files_win": None,
+            "queue": self._hpc_queue_for_login(user, host),
+            "jobs_running": [],
+            "jobs_recent": [],
+            "jobs_fetched": False,
+        }
+        term.bind("<<TerminalExited>>", lambda _event, sid=session_id: self._on_hpc_ssh_exited(sid))
+        self._show_hpc_session_book()
+        try:
+            book.select(frame)
+        except tk.TclError:
+            pass
+        self._set_active_hpc_session(session_id)
         self.ssh_status.set(f"Connecting to {user}@{host}:{port} ...")
         self._update_hpc_ssh_buttons(True)
         try:
@@ -2029,17 +2202,31 @@ class InputCreatorModule5:
             self.ssh_status.set(status)
             term.text.focus_set()
         except Exception as exc:
-            self._update_hpc_ssh_buttons(False)
-            self.ssh_status.set("Not connected.")
+            self._drop_hpc_session(session_id)
+            if self._hpc_sessions:
+                self._select_hpc_session(next(iter(self._hpc_sessions)))
+            else:
+                self._hide_hpc_session_book()
+                self._update_hpc_ssh_buttons(False)
+                self.ssh_status.set("Not connected.")
             messagebox.showerror("SSH", str(exc), parent=self.parent)
 
     def _disconnect_hpc_ssh(self):
-        term = getattr(self, "hpc_terminal", None)
-        if term is not None:
-            term.close()
-        self._update_hpc_ssh_buttons(False)
-        if not self._hpc_ssh_cooling_down():
-            self.ssh_status.set("Not connected.")
+        session_id = self._hpc_active_id
+        if not session_id:
+            return
+        if getattr(self, "_hpc_detached_id", "") == session_id:
+            self._reattach_hpc_terminal()
+        label = self._hpc_sessions.get(session_id, {}).get("label", session_id)
+        self._drop_hpc_session(session_id)
+        if self._hpc_sessions:
+            self._select_hpc_session(next(iter(self._hpc_sessions)))
+            self.ssh_status.set(f"Closed {label}. The other remotes are still open.")
+        else:
+            self._hide_hpc_session_book()
+            self._update_hpc_ssh_buttons(False)
+            if not self._hpc_ssh_cooling_down():
+                self.ssh_status.set("Not connected.")
 
     def _paste_hpc_ssh(self):
         term = getattr(self, "hpc_terminal", None)
@@ -2051,14 +2238,327 @@ class InputCreatorModule5:
         if term is not None:
             term.clear()
 
-    def _on_hpc_ssh_exited(self, _event=None):
-        self._update_hpc_ssh_buttons(False)
+    def _set_hpc_files_ready(self, ready: bool) -> None:
+        was = bool(getattr(self, "_hpc_control_ready", False))
+        self._hpc_control_ready = bool(ready)
+        btn = getattr(self, "btn_hpc_files", None)
+        if btn is not None:
+            try:
+                btn.configure(state=tk.NORMAL if ready else tk.DISABLED)
+            except tk.TclError:
+                pass
+        if ready and not was:
+            target = getattr(getattr(self, "hpc_terminal", None), "ssh_target", None)
+            if target:
+                host, user, _port = target
+            else:
+                host = (self.ssh_host.get() or "").strip()
+                user = (self.ssh_user.get() or "").strip()
+            self.ssh_status.set(
+                f"Connected to {user}@{host}. Files & jobs is ready. Running jobs are in Job Manager."
+            )
+
+    def _mark_hpc_session_ready(self, session_id: str) -> None:
+        sess = self._hpc_sessions.get(session_id)
+        if not sess or sess.get("ready"):
+            return
+        term = sess["term"]
+        path = getattr(term, "control_path", "") or ""
+        if not term.is_live() or not path or not os.path.exists(path):
+            return
+        if not shell_prompt_ready(term.screen.text()):
+            return
+        sess["ready"] = True
+        register_open_remote(
+            session_id,
+            sess["label"],
+            sess["host"],
+            sess["user"],
+            sess["port"],
+            path,
+            sess.get("queue") or "SLURM",
+        )
+        if session_id == self._hpc_active_id:
+            self._set_hpc_files_ready(True)
+
+    def _poll_hpc_control(self):
+        """Watch local terminals only. Does not open another SSH connection."""
+        try:
+            if not self.frame.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        for session_id, sess in list(self._hpc_sessions.items()):
+            term = sess.get("term")
+            if term is None:
+                continue
+            path = getattr(term, "control_path", "") or ""
+            if not term.is_live():
+                if sess.get("ready"):
+                    sess["ready"] = False
+                    close_open_remote(session_id)
+                    if session_id == self._hpc_active_id:
+                        self._set_hpc_files_ready(False)
+                continue
+            if sess.get("ready"):
+                if path and not os.path.exists(path):
+                    sess["ready"] = False
+                    close_open_remote(session_id)
+                    if session_id == self._hpc_active_id:
+                        self._set_hpc_files_ready(False)
+                continue
+            if path and os.path.exists(path) and shell_prompt_ready(term.screen.text()):
+                self._mark_hpc_session_ready(session_id)
+        try:
+            self.frame.after(2000, self._poll_hpc_control)
+        except tk.TclError:
+            pass
+
+    def _toggle_hpc_terminal(self):
+        if self._hpc_term_detached:
+            self._reattach_hpc_terminal()
+        else:
+            self._detach_hpc_terminal()
+
+    def _detach_hpc_terminal(self):
+        win = getattr(self, "_hpc_term_win", None)
+        if self._hpc_term_detached and getattr(self, "_hpc_detached_id", "") == self._hpc_active_id and win is not None:
+            try:
+                if win.winfo_exists():
+                    win.lift()
+                    return
+            except tk.TclError:
+                pass
+        if self._hpc_term_detached and getattr(self, "_hpc_detached_id", "") != self._hpc_active_id:
+            self._reattach_hpc_terminal()
         term = getattr(self, "hpc_terminal", None)
         if term is None:
-            self.ssh_status.set("Session ended. Click Connect SSH to log in again.")
+            return
+        win = tk.Toplevel(self.parent.winfo_toplevel())
+        win.title("HPC terminal")
+        win.geometry("960x560")
+        win.minsize(640, 360)
+        bar = ttk.Frame(win)
+        bar.pack(side=tk.BOTTOM, fill=tk.X)
+        host = ttk.Frame(win)
+        host.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        term.detach_into(host)
+        ttk.Label(
+            bar,
+            text="Same SSH session. Closing this window puts the terminal back in the panel.",
+        ).pack(side=tk.LEFT, padx=8, pady=6)
+        ttk.Button(bar, text="Reattach terminal", command=self._reattach_hpc_terminal).pack(side=tk.RIGHT, padx=8, pady=6)
+        win.protocol("WM_DELETE_WINDOW", self._reattach_hpc_terminal)
+        self._hpc_term_win = win
+        self._hpc_term_detached = True
+        self._hpc_detached_id = self._hpc_active_id
+        if hasattr(self, "btn_hpc_detach"):
+            self.btn_hpc_detach.configure(text="Reattach terminal")
+
+    def _reattach_hpc_terminal(self):
+        sid = getattr(self, "_hpc_detached_id", "") or self._hpc_active_id
+        sess = self._hpc_sessions.get(sid) if sid else None
+        term = sess["term"] if sess else getattr(self, "hpc_terminal", None)
+        if term is not None:
+            try:
+                term.reattach_display()
+            except tk.TclError:
+                pass
+        win = getattr(self, "_hpc_term_win", None)
+        self._hpc_term_win = None
+        self._hpc_term_detached = False
+        self._hpc_detached_id = ""
+        if hasattr(self, "btn_hpc_detach"):
+            try:
+                self.btn_hpc_detach.configure(text="Detach terminal")
+            except tk.TclError:
+                pass
+        if win is None:
             return
         try:
-            text = term.text.get("1.0", tk.END)
+            if win.winfo_exists():
+                win.protocol("WM_DELETE_WINDOW", win.destroy)
+                win.destroy()
+        except tk.TclError:
+            pass
+
+    def _open_hpc_files(self):
+        session_id = self._hpc_active_id
+        sess = self._hpc_sessions.get(session_id)
+        if not sess or not sess.get("ready"):
+            messagebox.showinfo(
+                "Files & jobs",
+                "Connect SSH and finish the password prompt first.\n"
+                "The file window uses that same login.",
+                parent=self.parent,
+            )
+            return
+        win = sess.get("files_win")
+        if win is not None:
+            try:
+                if win.winfo_exists():
+                    win.lift()
+                    return
+            except tk.TclError:
+                pass
+        term = sess["term"]
+        target = getattr(term, "ssh_target", None)
+        path = getattr(term, "control_path", "") or ""
+        if not target or not path:
+            return
+        host, user, port = target
+
+        def run_job(remote_dir, done, sid=session_id):
+            return self._hpc_transfer_job(sid, remote_dir, done, submit=True)
+
+        def paste_files(remote_dir, done, sid=session_id):
+            return self._hpc_transfer_job(sid, remote_dir, done, submit=False)
+
+        sess["files_win"] = HpcFilesWindow(
+            self.parent.winfo_toplevel(),
+            host=host,
+            username=user,
+            port=port,
+            control_path=path,
+            queue_system=lambda sid=session_id: self._hpc_sessions.get(sid, {}).get("queue") or self.hpc_queue_system.get(),
+            on_run_job=run_job,
+            on_paste_files=paste_files,
+            label=sess["label"],
+        )
+        self._hpc_files_win = sess["files_win"]
+
+    def _hpc_job_basename(self) -> str:
+        raw = (self.filename.get() or "orca_job").strip() or "orca_job"
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("._")
+        return safe or "orca_job"
+
+    def _hpc_preview_texts(self, parent) -> tuple[str, str]:
+        inp = self.txt_inp.get("1.0", tk.END).strip() if hasattr(self, "txt_inp") else ""
+        script = self.txt_sh.get("1.0", tk.END).strip() if hasattr(self, "txt_sh") else ""
+        if not inp or not script:
+            try:
+                self.generate()
+            except Exception as exc:
+                messagebox.showerror("HPC files", str(exc), parent=parent)
+                return "", ""
+            inp = self.txt_inp.get("1.0", tk.END).strip()
+            script = self.txt_sh.get("1.0", tk.END).strip()
+        if not inp or not script:
+            messagebox.showwarning(
+                "HPC files",
+                "Generate Preview first so the input and job script are filled in.",
+                parent=parent,
+            )
+            return "", ""
+        return inp, script
+
+    def _hpc_transfer_job(self, session_id: str, remote_dir: str, done, submit: bool) -> bool:
+        """One upload of the current input and script onto the login that is already open."""
+        sess = self._hpc_sessions.get(session_id)
+        parent = self.parent
+        if sess is not None:
+            win = sess.get("files_win")
+            if win is not None:
+                try:
+                    if win.winfo_exists():
+                        parent = win
+                except tk.TclError:
+                    pass
+        if not sess or not sess.get("ready"):
+            messagebox.showinfo(
+                "HPC files",
+                "Connect SSH and finish the password prompt first.",
+                parent=parent,
+            )
+            return False
+        term = sess["term"]
+        target = getattr(term, "ssh_target", None)
+        control_path = getattr(term, "control_path", "") or ""
+        if not target or not control_path:
+            messagebox.showinfo("HPC files", "That remote is not logged in.", parent=parent)
+            return False
+        inp, script = self._hpc_preview_texts(parent)
+        if not inp or not script:
+            return False
+        name = self._hpc_job_basename()
+        qsys = sess.get("queue") or self.hpc_queue_system.get()
+        tool = "qsub" if str(qsys).strip().upper() == "PBS" else "sbatch"
+        if submit:
+            if self.exec_mode.get() != "HPC":
+                if not messagebox.askyesno(
+                    "Run job",
+                    "Execution mode is not HPC, so this script may not be a cluster job.\nSubmit it anyway?",
+                    parent=parent,
+                ):
+                    return False
+            folder = remote_join(remote_dir, name)
+            if not messagebox.askyesno(
+                "Run job",
+                f"Create {folder}, upload {name}.inp and {name}.sh, and submit with {tool}?\n\n"
+                "Only the current input and job script are uploaded. "
+                "Use Upload for extra xyz, gbw, or hess files first if this job needs them.",
+                parent=parent,
+            ):
+                return False
+        else:
+            folder = remote_dir
+        host, user, port = target
+
+        def work():
+            tmp = tempfile.mkdtemp(prefix="ac-job-")
+            try:
+                remote = RemoteSSH(host, user, port, control_path)
+                if submit:
+                    remote.mkdir(folder)
+                inp_path = os.path.join(tmp, f"{name}.inp")
+                sh_path = os.path.join(tmp, f"{name}.sh")
+                with open(inp_path, "w", encoding="utf-8", newline="\n") as handle:
+                    handle.write(inp + ("\n" if not inp.endswith("\n") else ""))
+                with open(sh_path, "w", encoding="utf-8", newline="\n") as handle:
+                    handle.write(script + ("\n" if not script.endswith("\n") else ""))
+                remote.upload_many([
+                    (inp_path, remote_join(folder, f"{name}.inp")),
+                    (sh_path, remote_join(folder, f"{name}.sh")),
+                ])
+                if submit:
+                    result = remote.submit(folder, f"{name}.sh", qsys)
+                    done(f"Submitted {name}.sh with {tool}\n{result}\nFolder: {folder}")
+                else:
+                    done(f"Pasted {name}.inp and {name}.sh into {folder}")
+            except Exception as exc:
+                done(str(exc))
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+
+        threading.Thread(target=work, daemon=True, name="hpc-run-job").start()
+        return True
+
+    def _hpc_run_current_job(self, remote_dir: str, done) -> bool:
+        return self._hpc_transfer_job(self._hpc_active_id, remote_dir, done, submit=True)
+
+    def _on_hpc_ssh_exited(self, session_id=None):
+        if session_id is not None and not isinstance(session_id, str):
+            session_id = self._hpc_active_id
+        session_id = session_id or self._hpc_active_id
+        sess = self._hpc_sessions.get(session_id) if session_id else None
+        if sess is not None:
+            sess["ready"] = False
+            close_open_remote(session_id)
+            book = getattr(self, "hpc_session_book", None)
+            if book is not None:
+                try:
+                    book.tab(sess["frame"], text=f"{sess['label']} · closed")
+                except tk.TclError:
+                    pass
+        if session_id == self._hpc_active_id:
+            self._update_hpc_ssh_buttons(False)
+        term = sess["term"] if sess else getattr(self, "hpc_terminal", None)
+        if term is None:
+            if session_id == self._hpc_active_id:
+                self.ssh_status.set("Session ended. Click Connect SSH to log in again.")
+            return
+        try:
+            text = term.screen.text()
         except Exception:
             text = ""
         lowered = text.lower()
@@ -2074,8 +2574,10 @@ class InputCreatorModule5:
             or "operation timed out" in lowered
             or "connection to " in lowered and " timed out" in lowered
         )
+        if session_id != self._hpc_active_id:
+            return
         if timed_out:
-            host = (self.ssh_host.get() or "").strip() or "this host"
+            host = (sess or {}).get("host") or (self.ssh_host.get() or "").strip() or "this host"
             campus = bool(re.search(
                 r"\b(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)\d",
                 text,
@@ -2089,7 +2591,9 @@ class InputCreatorModule5:
         if auth_failed:
             self._start_hpc_ssh_cooldown(15)
             return
-        self.ssh_status.set("Session ended. Click Connect SSH to log in again.")
+        label = (sess or {}).get("label") or "This remote"
+        self.ssh_status.set(f"{label} closed the terminal. Other open remotes are unchanged.")
+
 
     def get_name(self):
         return "Input Creator"
@@ -2102,10 +2606,8 @@ class InputCreatorModule5:
         self._apply_default_layout_on_activate()
 
     def deactivate(self):
-        try:
-            self._disconnect_hpc_ssh()
-        except Exception:
-            pass
+        # Leave SSH up. A remote stays open until that cluster closes it
+        # or the user clicks Disconnect. Switching modules is not a logout.
         self.frame.pack_forget()
 
     def get_session_state(self):
@@ -2358,6 +2860,14 @@ class InputCreatorModule5:
         self.ssh_status = tk.StringVar(value="Not connected.")
         self._hpc_ssh_cooldown_until = 0.0
         self._hpc_ssh_cooldown_job = None
+        self._hpc_control_ready = False
+        self._hpc_control_checking = False
+        self._hpc_term_detached = False
+        self._hpc_term_win = None
+        self._hpc_files_win = None
+        self._hpc_sessions = {}
+        self._hpc_active_id = ""
+        self.hpc_terminal = None
         self._master_paths_prompted = False
         self._master_paths_file = ""
         self._master_paths = {"version": 1, "paths": {"ORCA_ROOT": "", "ESPRESSO_ROOT": ""}, "systems": {}}
@@ -3732,7 +4242,7 @@ class InputCreatorModule5:
         ttk.Button(key_wrap, text="Browse", width=8, command=self._browse_hpc_ssh_key).pack(side=tk.LEFT, padx=(4, 0))
         ttk.Label(
             ssh_cred,
-            text="Password is typed in the terminal after Connect (like MobaXterm).",
+            text="Pick a saved machine, then Connect. Each remote stays open until that cluster closes it or you click Disconnect. Switch tabs to move between them. Password is typed in the terminal.",
             font=("Segoe UI", 8, "italic"),
         ).grid(row=2, column=0, columnspan=6, sticky="w", pady=(4, 0))
         ssh_cred.columnconfigure(1, weight=1)
@@ -3745,19 +4255,26 @@ class InputCreatorModule5:
         self.btn_hpc_ssh_disconnect.pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(ssh_btn, text="Paste", command=self._paste_hpc_ssh).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(ssh_btn, text="Clear", command=self._clear_hpc_ssh).pack(side=tk.LEFT, padx=(6, 0))
+        self.btn_hpc_detach = ttk.Button(ssh_btn, text="Detach terminal", command=self._toggle_hpc_terminal)
+        self.btn_hpc_detach.pack(side=tk.LEFT, padx=(6, 0))
+        self.btn_hpc_files = ttk.Button(ssh_btn, text="Files & jobs", command=self._open_hpc_files, state=tk.DISABLED)
+        self.btn_hpc_files.pack(side=tk.LEFT, padx=(6, 0))
         ttk.Label(ssh_btn, textvariable=self.ssh_status, font=("Segoe UI", 9, "italic")).pack(side=tk.LEFT, padx=(12, 0))
 
-        self.hpc_terminal = EmbeddedTerminal(
+        self.hpc_session_book = ttk.Notebook(self.hpc_ssh_frame)
+        self.hpc_session_book.bind("<<NotebookTabChanged>>", self._on_hpc_session_tab)
+        self.hpc_term_placeholder = ttk.Label(
             self.hpc_ssh_frame,
-            height=12,
-            placeholder=(
-                "Enter host and username, then click Connect SSH.\n"
-                "Host keys are not stored (needed for HPC login farms). Campus/VPN hosts can take up to 60s.\n"
-                "Type password / OTP / captcha answers in this terminal when asked.\n"
+            text=(
+                "No remote is open. Choose a saved HPC machine, or type host and username, then click Connect SSH.\n"
+                "Connect again with another machine to open a second remote. The first one stays logged in.\n"
+                "A remote closes only when that cluster drops it, or when you click Disconnect on that tab."
             ),
+            wraplength=760,
+            justify=tk.LEFT,
         )
-        self.hpc_terminal.pack(side=tk.TOP, fill=tk.X, expand=False)
-        self.hpc_terminal.bind("<<TerminalExited>>", self._on_hpc_ssh_exited)
+        self.hpc_term_placeholder.pack(side=tk.TOP, fill=tk.X, pady=(4, 0))
+        self.frame.after(400, self._poll_hpc_control)
         self.frame.after(100, _update_exec_mode_ui)
 
         # (Scripting mode toggle removed)
@@ -4169,6 +4686,7 @@ class InputCreatorModule5:
 
         self.txt_inp = tk.Text(f_inp, font=("Consolas", 12), wrap=tk.NONE)
         self.txt_inp.pack(fill=tk.BOTH, expand=True)
+
 
         self.txt_sh = tk.Text(f_sh, font=("Consolas", 12), wrap=tk.NONE)
         self.txt_sh.pack(fill=tk.BOTH, expand=True)
