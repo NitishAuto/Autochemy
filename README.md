@@ -5,7 +5,7 @@ AutoChemy is a free and user-friendly computational chemistry platform designed 
 AutoChemy supports both molecular and periodic systems. ORCA and Quantum ESPRESSO are both integrated, enabling workflows for molecular quantum chemistry as well as periodic (solid-state) calculations within a single application.
 
 
-Installation Guide video : https://www.youtube.com/watch?v=PWoCmkNO5gs
+Installation Guide video : https://www.youtube.com/watch?v=OoP2A_Vgp7s
 
 Key Features
 Support for molecular and periodic systems
