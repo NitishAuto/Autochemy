@@ -192,6 +192,9 @@ class EmbeddedASEGUIWindow:
         )
 
     def text(self, x, y, txt, anchor=tk.CENTER, color="black"):
+        # Normalize anchor to lowercase string if it's a string like "SE"
+        if isinstance(anchor, str):
+            anchor = anchor.lower()
         self.canvas.create_text((x, y), text=txt, anchor=anchor, fill=color)
 
     def after(self, delay, callback):
@@ -290,8 +293,10 @@ class StructureGeneratorModule(BaseModule):
             "Generate slab",
             "Compute Free energies",
         ):
-            command = self._add_solvent if action == "Add solvent" else (
-                lambda name=action: self._model_action(name)
+            command = (
+                self._add_solvent if action == "Add solvent" else
+                self._generate_slab if action == "Generate slab" else
+                (lambda name=action: self._model_action(name))
             )
             ttk.Button(
                 self._model_options,
@@ -337,6 +342,9 @@ class StructureGeneratorModule(BaseModule):
                 parent=self.main_frame.winfo_toplevel(),
             )
             return
+        
+        # Reset to current frame to avoid frame switching issues
+        self._reset_images_to_current_frame()
 
         atoms = self._ase_guis[0].atoms if self._ase_guis else self._images[0]
         import numpy as np
@@ -362,6 +370,208 @@ class StructureGeneratorModule(BaseModule):
             return
 
         self._open_solvent_setup(vacuum_axes)
+    def _generate_slab(self):
+        if self._images is None or not len(self._images):
+            messagebox.showinfo(
+                "Generate slab",
+                "Load a structure before generating a slab.",
+                parent=self.main_frame.winfo_toplevel(),
+            )
+            return
+        
+        # Reset to current frame to avoid frame switching issues
+        self._reset_images_to_current_frame()
+
+        atoms = self._ase_guis[0].atoms if self._ase_guis else self._images[0]
+        import numpy as np
+
+        positions = np.asarray(atoms.get_positions(), dtype=float)
+        cell = np.asarray(atoms.get_cell(), dtype=float)
+        vacuum_axes = []
+        for axis, name in enumerate(("x", "y", "z")):
+            cell_length = float(np.linalg.norm(cell[axis]))
+            if cell_length <= 1.0e-8 or positions.size == 0:
+                continue
+            coordinate_span = float(positions[:, axis].max() - positions[:, axis].min())
+            if coordinate_span < 0.7 * cell_length:
+                vacuum_axes.append(name)
+
+        if vacuum_axes:
+            proceed = messagebox.askyesno(
+                "Generate slab",
+                f"This structure is not bulk (vacuum detected along {', '.join(vacuum_axes)}). "
+                "Do you want to proceed?",
+                parent=self.main_frame.winfo_toplevel(),
+            )
+            if not proceed:
+                return
+
+        self._open_slab_setup()
+
+    def _open_slab_setup(self):
+        dialog = tk.Toplevel(self.main_frame.winfo_toplevel())
+        dialog.title("Generate Slabs (Pymatgen)")
+        dialog.geometry("520x650")
+        dialog.transient(self.main_frame.winfo_toplevel())
+
+        body = ttk.Frame(dialog, padding=12)
+        body.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            body,
+            text="Configure pymatgen SlabGenerator parameters:",
+            wraplength=480,
+            justify=tk.LEFT,
+        ).pack(anchor="w", pady=(0, 8))
+
+        canvas = tk.Canvas(body, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(body, orient=tk.VERTICAL, command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas, padding=4)
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        vars_dict = {
+            "miller": tk.StringVar(value="1, 0, 0"),
+            "min_slab": tk.StringVar(value="5.0"),
+            "min_vacuum": tk.StringVar(value="10.0"),
+            "lll_reduce": tk.BooleanVar(value=False),
+            "center_slab": tk.BooleanVar(value=False),
+            "in_unit_planes": tk.BooleanVar(value=False),
+            "primitive": tk.BooleanVar(value=True),
+            "max_normal": tk.StringVar(value=""),
+            "reorient": tk.BooleanVar(value=True),
+            "allow_smaller": tk.BooleanVar(value=False),
+            "symmetrize": tk.BooleanVar(value=False),
+            "filter_sym": tk.BooleanVar(value=True),
+            "max_broken": tk.StringVar(value="0"),
+            "tol": tk.StringVar(value="0.1"),
+            "ftol": tk.StringVar(value="0.1"),
+            "ztol": tk.StringVar(value="0.0"),
+        }
+
+        for lbl, key in [
+            ("Miller indices (h, k, l):", "miller"),
+            ("Min slab size (Å):", "min_slab"),
+            ("Min vacuum size (Å):", "min_vacuum"),
+            ("Max normal search:", "max_normal"),
+            ("Max broken bonds:", "max_broken"),
+            ("Tolerance (tol):", "tol"),
+            ("Fractional tol (ftol):", "ftol"),
+            ("Z-tolerance (ztol):", "ztol"),
+        ]:
+            r = ttk.Frame(scrollable_frame)
+            r.pack(fill=tk.X, pady=3)
+            ttk.Label(r, text=lbl, width=28).pack(side=tk.LEFT)
+            ttk.Entry(r, textvariable=vars_dict[key], width=16).pack(side=tk.RIGHT)
+
+        for lbl, key in [
+            ("LLL reduce", "lll_reduce"),
+            ("Center slab", "center_slab"),
+            ("In unit planes", "in_unit_planes"),
+            ("Primitive cell", "primitive"),
+            ("Reorient lattice", "reorient"),
+            ("Allow smaller than OUC", "allow_smaller"),
+            ("Symmetrize slabs", "symmetrize"),
+            ("Filter out symmetric slabs", "filter_sym"),
+        ]:
+            r = ttk.Frame(scrollable_frame)
+            r.pack(fill=tk.X, pady=2)
+            ttk.Checkbutton(r, text=lbl, variable=vars_dict[key]).pack(anchor="w")
+
+        buttons = ttk.Frame(dialog, padding=10)
+        buttons.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def on_gen():
+            try:
+                m_parts = [int(p.strip()) for p in vars_dict["miller"].get().replace("(", "").replace(")", "").split(",") if p.strip()]
+                if len(m_parts) != 3:
+                    raise ValueError("Miller indices must be 3 integers.")
+                self._run_slab_generation(
+                    miller_index=tuple(m_parts),
+                    min_slab_size=float(vars_dict["min_slab"].get()),
+                    min_vacuum_size=float(vars_dict["min_vacuum"].get()),
+                    lll_reduce=vars_dict["lll_reduce"].get(),
+                    center_slab=vars_dict["center_slab"].get(),
+                    in_unit_planes=vars_dict["in_unit_planes"].get(),
+                    primitive=vars_dict["primitive"].get(),
+                    max_normal_search=int(vars_dict["max_normal"].get()) if vars_dict["max_normal"].get().strip() else None,
+                    reorient_lattice=vars_dict["reorient"].get(),
+                    allow_smaller_than_ouc=vars_dict["allow_smaller"].get(),
+                    symmetrize=vars_dict["symmetrize"].get(),
+                    filter_out_sym_slabs=vars_dict["filter_sym"].get(),
+                    max_broken_bonds=int(vars_dict["max_broken"].get()),
+                    tol=float(vars_dict["tol"].get()),
+                    ftol=float(vars_dict["ftol"].get()),
+                    ztol=float(vars_dict["ztol"].get()),
+                )
+                dialog.destroy()
+            except Exception as exc:
+                messagebox.showerror("Error", f"Invalid parameters:\n{exc}", parent=dialog)
+
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=(6, 0))
+        ttk.Button(buttons, text="Generate", command=on_gen).pack(side=tk.RIGHT)
+        dialog.grab_set()
+
+    def _run_slab_generation(self, **kwargs):
+        try:
+            from pymatgen.io.ase import AseAtomsAdaptor
+            from pymatgen.core.surface import SlabGenerator
+            from ase.gui.images import Images
+
+            atoms = self._ase_guis[0].atoms if self._ase_guis else self._images[0]
+            struct = AseAtomsAdaptor.get_structure(atoms)
+
+            generator = SlabGenerator(
+                initial_structure=struct,
+                miller_index=kwargs["miller_index"],
+                min_slab_size=kwargs["min_slab_size"],
+                min_vacuum_size=kwargs["min_vacuum_size"],
+                lll_reduce=kwargs["lll_reduce"],
+                center_slab=kwargs["center_slab"],
+                in_unit_planes=kwargs["in_unit_planes"],
+                primitive=kwargs["primitive"],
+                max_normal_search=kwargs["max_normal_search"],
+                reorient_lattice=kwargs["reorient_lattice"],
+                allow_smaller_than_ouc=kwargs["allow_smaller_than_ouc"],
+            )
+
+            slabs = generator.get_slabs(
+                symmetrize=kwargs["symmetrize"],
+                filter_out_sym_slabs=kwargs["filter_out_sym_slabs"],
+                max_broken_bonds=kwargs["max_broken_bonds"],
+                tol=kwargs["tol"],
+                ftol=kwargs["ftol"],
+                ztol=kwargs["ztol"],
+            )
+
+            if not slabs:
+                messagebox.showinfo(
+                    "No Slabs Generated",
+                    "No slabs were generated with the given parameters.",
+                    parent=self.main_frame.winfo_toplevel(),
+                )
+                return
+
+            slab_atoms_list = [AseAtomsAdaptor.get_atoms(slab) for slab in slabs]
+            self._images = Images(images=slab_atoms_list)
+            self.path_var.set(f"Generated Slabs (terminations: {len(slab_atoms_list)})")
+            self._create_viewer()
+
+        except Exception as exc:
+            messagebox.showerror(
+                "Slab Generation Error",
+                f"Failed to generate slabs using pymatgen:\n{exc}",
+                parent=self.main_frame.winfo_toplevel(),
+            )
+            import traceback
+            traceback.print_exc()
+
+
+
+
 
     def _estimate_solvent_volume(self):
         atoms = self._ase_guis[0].atoms if self._ase_guis else self._images[0]
@@ -821,6 +1031,7 @@ class StructureGeneratorModule(BaseModule):
             self._create_ase_gui(ase_ui, GUI, side_frame, "90y")
             self._create_ase_gui(ase_ui, GUI, top_frame, "")
             self._install_sync_hooks()
+            self._create_movie_controls()
             self._create_view_controls(top_frame, side_frame)
             self._reset_views()
             for gui in self._ase_guis:
@@ -879,6 +1090,77 @@ class StructureGeneratorModule(BaseModule):
         )
         popout.place(relx=1.0, x=-8, y=36, anchor="ne")
 
+    def _create_movie_controls(self):
+        if self._images is None or len(self._images) <= 1:
+            return
+
+        controls = ttk.Frame(self._viewer_host)
+        controls.pack(side=tk.BOTTOM, fill=tk.X, padx=4, pady=(4, 0))
+        self._movie_controls = controls
+
+        n_frames = len(self._images)
+        self._frame_var = tk.IntVar(value=self._ase_guis[0].frame if self._ase_guis else 0)
+
+        ttk.Label(controls, text="Frame:").pack(side=tk.LEFT, padx=(0, 4))
+
+        def on_slider(value):
+            frame = int(float(value))
+            self._frame_var.set(frame)
+            if self._ase_guis:
+                self._ase_guis[0].set_frame(frame)
+
+        slider = ttk.Scale(
+            controls,
+            from_=0,
+            to=max(0, n_frames - 1),
+            orient=tk.HORIZONTAL,
+            variable=self._frame_var,
+            command=on_slider,
+        )
+        slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+
+        self._frame_label = ttk.Label(controls, text=f"{self._frame_var.get() + 1} / {n_frames}")
+        self._frame_label.pack(side=tk.LEFT, padx=(0, 8))
+
+        def update_frame_label(*_args):
+            self._frame_label.config(text=f"{self._frame_var.get() + 1} / {n_frames}")
+
+        self._frame_var.trace_add("write", update_frame_label)
+
+        def step(delta):
+            current = self._frame_var.get()
+            new_frame = max(0, min(n_frames - 1, current + delta))
+            self._frame_var.set(new_frame)
+            on_slider(new_frame)
+
+        def play():
+            if getattr(self, "_playing", False):
+                return
+            self._playing = True
+            self._animate()
+
+        def stop():
+            self._playing = False
+
+        def _animate():
+            if not getattr(self, "_playing", False):
+                return
+            current = self._frame_var.get()
+            new_frame = (current + 1) % n_frames
+            self._frame_var.set(new_frame)
+            on_slider(new_frame)
+            self._movie_controls.after(200, self._animate)
+
+        for text, cmd in [
+            ("First", lambda: step(-(n_frames - 1))),
+            ("Back", lambda: step(-1)),
+            ("Play", play),
+            ("Stop", stop),
+            ("Forward", lambda: step(1)),
+            ("Last", lambda: step(n_frames - 1)),
+        ]:
+            ttk.Button(controls, text=text, width=6, command=cmd).pack(side=tk.LEFT, padx=2)
+
     def _set_bottom_view(self, key):
         if len(self._ase_guis) >= 2:
             self._ase_guis[1].set_view(key)
@@ -917,16 +1199,43 @@ class StructureGeneratorModule(BaseModule):
                     popout=False,
                 )
 
+            def movie(self):
+                # Prevent ASE from creating its own Movie windows.
+                # The module creates a single shared Movie dialog instead.
+                pass
+
+            def plot_graphs(self, key=None, expr=None, ignore_if_nan=False):
+                # Prevent ASE from opening the graphs window automatically.
+                pass
+
         ase_ui.ASEGUIWindow = ModuleWindow
+        # Store original GUI class methods before wrapping
+        original_gui_movie = gui_class.movie
+        original_gui_plot_graphs = gui_class.plot_graphs
+
+        # Suppress ASE's movie() and plot_graphs() at the class level.
+        # These are called in GUI.__init__ when len(images) > 1,
+        # before we can install hooks on individual instances.
+        # We use lambda functions that accept the expected signatures
+        # but do nothing, suppressing the automatic dialogs.
+        gui_class.movie = lambda self: None
+        gui_class.plot_graphs = lambda self, key=None, expr=None, ignore_if_nan=False: None
+
         try:
-            self._ase_guis.append(gui_class(self._images, rotations=rotations))
+            # Pass expr="" to prevent plot_graphs from being called.
+            # GUI.__init__ checks: if expr is not None and expr != '' and len(self.images) > 1
+            self._ase_guis.append(gui_class(self._images, rotations=rotations, expr=""))
         finally:
             ase_ui.ASEGUIWindow = original_window
+            # Restore original GUI class methods
+            gui_class.movie = original_gui_movie
+            gui_class.plot_graphs = original_gui_plot_graphs
 
     def _install_sync_hooks(self):
-        """Refresh both GUI projections after either one edits shared atoms."""
+        """Refresh both GUI projections after either one edits shared atoms or changes frame."""
         for gui in self._ase_guis:
             original_draw = gui.draw
+            original_set_frame = gui.set_frame
 
             def draw(status=True, current=gui, base_draw=original_draw):
                 result = base_draw(status)
@@ -945,6 +1254,27 @@ class StructureGeneratorModule(BaseModule):
                 return result
 
             gui.draw = draw
+
+            def set_frame(frame=None, update=True, current=gui, base_set_frame=original_set_frame):
+                result = base_set_frame(frame, update)
+                if not getattr(self, "_syncing_views", False):
+                    self._syncing_views = True
+                    try:
+                        for sibling in self._ase_guis:
+                            if sibling is current:
+                                continue
+                            sibling.set_frame(frame, update)
+                    finally:
+                        self._syncing_views = False
+                return result
+
+            gui.set_frame = set_frame
+
+            # Suppress ASE's automatic Movie and Graphs windows.
+            # The module creates a single shared Movie control panel instead.
+            gui.movie = lambda *args, **kwargs: None
+            gui.plot_graphs = lambda *args, **kwargs: None
+            gui.movie_window = None
 
     def _toggle_popout(self):
         if self._images is None:
@@ -989,6 +1319,35 @@ class StructureGeneratorModule(BaseModule):
             except tk.TclError:
                 pass
 
+    def _reset_images_to_current_frame(self):
+        """Remove all frames except the current one for mode switching.
+        
+        When switching to another mode (like Add solvent), we want to:
+        1. Keep only the current frame
+        2. Reset the history to avoid frame switching issues when returning later
+        """
+        if self._images is None or len(self._images) <= 1:
+            return
+        
+        # Get the current frame index
+        current_frame = self._ase_guis[0].frame if self._ase_guis else 0
+        
+        # Get the current atoms
+        current_atoms = self._images[current_frame]
+        
+        # Rebuild images with only the current frame
+        from ase.gui.images import Images
+        new_images = Images()
+        new_images.initialize([current_atoms], filenames=[None])
+        
+        # Replace the old images with the new one-frame images
+        self._images = new_images
+        if self._ase_guis:
+            for gui in self._ase_guis:
+                gui.images = new_images
+                gui.frame = 0
+                gui.draw()
+    
     def _show_ase_missing(self):
         messagebox.showerror(
             "ASE is required",

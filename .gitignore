@@ -20,6 +20,9 @@ profiling
 Thumbs.db
 .temp/
 paths.txt
+.devcontainer/
+.devcontainer/*
+graphify*
 
 # AutoChemy first-run and user-specific runtime files
 AutoChemy_User_Data/.autochemy_ready
