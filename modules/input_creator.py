@@ -1,4 +1,6 @@
 #this version run the pefect window
+from __future__ import annotations
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import ast

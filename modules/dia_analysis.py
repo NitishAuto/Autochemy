@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import threading
 import os
 import shutil
-from PIL import Image, ImageTk
+try:
+    from PIL import Image, ImageTk
+except Exception:
+    Image = ImageTk = None
 import pandas as pd
 
 from modules.base_module import BaseModule

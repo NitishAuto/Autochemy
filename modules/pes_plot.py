@@ -1,5 +1,7 @@
 """Potential Energy Surface (PES) Plot module."""
 
+from __future__ import annotations
+
 import csv
 import copy
 import math
@@ -17,15 +19,40 @@ from modules.platform_util import copy_image_to_clipboard, launch_program, open_
 
 try:
     import matplotlib
-    matplotlib.use("TkAgg")
+    if os.environ.get("DISPLAY") or sys.platform in ("win32", "darwin"):
+        try:
+            matplotlib.use("TkAgg")
+        except Exception:
+            pass
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.collections import LineCollection
     from matplotlib.colors import LinearSegmentedColormap
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
     _HAS_MPL = True
+    try:
+        import matplotlib._mathtext as _mmt
+        _mmt.tex2uni["ddagger"] = 8225
+        _mmt.tex2uni["ddag"] = 8225
+        _mmt.tex2uni["dagger"] = 8224
+        _mmt.tex2uni["dag"] = 8224
+    except Exception:
+        pass
+    try:
+        import matplotlib._mathtext_data as _mtd
+        _mtd.tex2uni["ddagger"] = 8225
+        _mtd.tex2uni["ddag"] = 8225
+        _mtd.tex2uni["dagger"] = 8224
+        _mtd.tex2uni["dag"] = 8224
+    except Exception:
+        pass
 except Exception:
     _HAS_MPL = False
+
+try:
+    import numpy as np
+except Exception:
+    np = None
 
 EH_TO_KCAL = 627.509
 EH_TO_EV = 27.2114
@@ -448,6 +475,10 @@ def _sanitize_math_text(text):
     if not text:
         return text
     text = str(text)
+    if r"\ddagger" in text:
+        text = text.replace(r"\ddagger", "‡")
+    if r"\ddag" in text:
+        text = text.replace(r"\ddag", "‡")
     if "$" in text or "\\" in text:
         try:
             import matplotlib.mathtext as mt
@@ -4494,6 +4525,7 @@ class PESPlotModule(BaseModule):
         self._flow_overlays = []
         self._diff_bar_label_xy = None
         self.pt_offsets = {}
+        self._label_offsets = {}  # {species_id: {"energy": (dx, dy), "name": (dx, dy)}}
         self._ref_name.set("")
         self.project_combo_var.set(self._project_combo_placeholder)
         if hasattr(self, "subproject_combo_var"):
@@ -6164,6 +6196,7 @@ class PESPlotModule(BaseModule):
                     
         # Offset mappings for Matplotlib internal visual dragging
         if not hasattr(self, "pt_offsets"): self.pt_offsets = {}
+        if not hasattr(self, "_label_offsets"): self._label_offsets = {}
         px = {sp["id"]: depth[sp["id"]] + self.pt_offsets.get(sp.get("_orig_id", sp["id"]), (0.0, 0.0))[0] for sp in valid}
         self._plot_px_cache = px
         py = {sp["id"]: (sp.get(rel_key, 0.0) or 0.0) + self.pt_offsets.get(sp.get("_orig_id", sp["id"]), (0.0, 0.0))[1] for sp in valid}
@@ -6318,7 +6351,8 @@ class PESPlotModule(BaseModule):
                 segments = [[(lx[k], ly[k]), (lx[k + 1], ly[k + 1])] for k in range(len(lx) - 1)]
                 lc = LineCollection(segments, linewidths=linewidth, cmap=g_cmap, zorder=1, linestyles=ls)
                 nseg = len(segments)
-                lc.set_array([ (ly[k] + ly[k+1])/2.0 for k in range(nseg) ])
+                vals = [(ly[k] + ly[k+1])/2.0 for k in range(nseg)]
+                lc.set_array(np.asarray(vals, dtype=float) if np is not None else vals)
                 lc.set_norm(g_norm)
                 lc.set_capstyle("round")
                 lc.set_picker(5)
@@ -6470,11 +6504,14 @@ class PESPlotModule(BaseModule):
                 val_txt = val_txt.replace("-", "- ")
                 
                 txt_color = _label_color(color)
+                sid = sp.get("id")
                 if not self._label_hide_energies.get():
+                    # Apply any previously-saved label drag offset
+                    _ev_off = self._label_offsets.get(sid, {}).get("energy", (0.0, 0.0))
                     ann_v = ax.annotate(
                         val_txt,
                         xy=(xi, yi),
-                        xytext=(xi, yi + label_off * 0.95),
+                        xytext=(xi + _ev_off[0], yi + label_off * 0.95 + _ev_off[1]),
                         ha="center",
                         va="bottom",
                         fontsize=fs,
@@ -6486,15 +6523,37 @@ class PESPlotModule(BaseModule):
                         zorder=4,
                     )
                     plot_annotations.append(ann_v)
+                    ann_v._pes_draggable_label = True
+                    ann_v._pes_label_kind = "energy"
+                    ann_v._pes_label_sid = sid
+                    ann_v._pes_label_base = (xi, yi + label_off * 0.95)
+                    if _ev_off != (0.0, 0.0):
+                        ann_v._pes_user_moved = True
                     try:
-                        ann_v.draggable(True)
-                    except:
+                        drag_v = ann_v.draggable(True)
+                        if drag_v is not None and hasattr(drag_v, "finalize_offset"):
+                            _orig_fin_v = drag_v.finalize_offset
+                            _sid_v = sid
+                            _base_v = (xi, yi + label_off * 0.95)
+                            def _wrap_fin_v(_of=_orig_fin_v, _s=_sid_v, _b=_base_v, _a=ann_v):
+                                _of()
+                                try:
+                                    tx, ty = _a.get_position()
+                                    dx, dy = tx - _b[0], ty - _b[1]
+                                    lo = self._label_offsets.setdefault(_s, {})
+                                    lo["energy"] = (dx, dy)
+                                except Exception:
+                                    pass
+                            drag_v.finalize_offset = _wrap_fin_v
+                    except Exception:
                         pass
                 if not self._label_hide_names.get():
+                    # Apply any previously-saved label drag offset
+                    _nm_off = self._label_offsets.get(sid, {}).get("name", (0.0, 0.0))
                     ann_n = ax.annotate(
                         nm,
                         xy=(xi, yi),
-                        xytext=(xi, yi - label_off * 0.95),
+                        xytext=(xi + _nm_off[0], yi - label_off * 0.95 + _nm_off[1]),
                         ha="center",
                         va="top",
                         fontsize=fs,
@@ -6505,9 +6564,29 @@ class PESPlotModule(BaseModule):
                     plot_annotations.append(ann_n)
                     ann_n.set_picker(5)
                     ann_n._pes_species_idx = sp.get("id")
+                    ann_n._pes_draggable_label = True
+                    ann_n._pes_label_kind = "name"
+                    ann_n._pes_label_sid = sid
+                    ann_n._pes_label_base = (xi, yi - label_off * 0.95)
+                    if _nm_off != (0.0, 0.0):
+                        ann_n._pes_user_moved = True
                     try:
-                        ann_n.draggable(True)
-                    except:
+                        drag_n = ann_n.draggable(True)
+                        if drag_n is not None and hasattr(drag_n, "finalize_offset"):
+                            _orig_fin_n = drag_n.finalize_offset
+                            _sid_n = sid
+                            _base_n = (xi, yi - label_off * 0.95)
+                            def _wrap_fin_n(_of=_orig_fin_n, _s=_sid_n, _b=_base_n, _a=ann_n):
+                                _of()
+                                try:
+                                    tx, ty = _a.get_position()
+                                    dx, dy = tx - _b[0], ty - _b[1]
+                                    lo = self._label_offsets.setdefault(_s, {})
+                                    lo["name"] = (dx, dy)
+                                except Exception:
+                                    pass
+                            drag_n.finalize_offset = _wrap_fin_n
+                    except Exception:
                         pass
 
         # User-inserted overlay assets (right-click menu in plot)
@@ -7054,9 +7133,9 @@ class PESPlotModule(BaseModule):
                 sub_label = "fwd" if direction == "Forward" else "bwd"
                 if cust_val:
                     cust_val = _sanitize_math_text(cust_val)
-                    lbl = r"$\Delta " + delta_sym + r"^{\ddagger}_{" + sub_label + r"} = " + str(cust_val) + r"$" + f" {u}"
+                    lbl = _sanitize_math_text(r"$\Delta " + delta_sym + r"^{‡}_{" + sub_label + r"} = " + str(cust_val) + r"$") + f" {u}"
                 else:
-                    lbl = r"$\Delta " + delta_sym + r"^{\ddagger}_{" + sub_label + r"} = " + f"{dG:.1f}" + r"$" + f" {u}"
+                    lbl = _sanitize_math_text(r"$\Delta " + delta_sym + r"^{‡}_{" + sub_label + r"} = " + f"{dG:.1f}" + r"$") + f" {u}"
                 ann_d = ax.annotate(
                     lbl,
                     xy=(tx, ty),
@@ -7069,6 +7148,10 @@ class PESPlotModule(BaseModule):
                     **_ccc_font_kw,
                 )
                 ann_d._pes_diff_bar_label = True
+                ann_d._pes_draggable_label = True
+                ann_d._pes_label_kind = "diff_bar"
+                if getattr(self, "_diff_bar_label_xy", None) is not None:
+                    ann_d._pes_user_moved = True
                 ann_d.set_picker(5)
                 plot_annotations.append(ann_d)
                 try:
@@ -7601,19 +7684,70 @@ class PESPlotModule(BaseModule):
                 self._asset_click_candidate = True
                 return
 
-            # Click outside any image - deselect
-            if self._selected_asset_idx is not None:
-                self._selected_asset_idx = None
-                self._render_plot()
+            # Check draggable labels (species name, energy value, barrier height)
+            hit_ann = None
+            try:
+                for art in reversed(plot_annotations):
+                    if not getattr(art, "get_visible", lambda: True)():
+                        continue
+                    if getattr(art, "_pes_draggable_label", False) or getattr(art, "_pes_diff_bar_label", False):
+                        hit = False
+                        try:
+                            cont, _ = art.contains(event)
+                            if cont:
+                                hit = True
+                        except Exception:
+                            pass
+                        if not hit and hasattr(fig.canvas, "get_renderer"):
+                            try:
+                                bbox = art.get_window_extent(fig.canvas.get_renderer())
+                                if (bbox.x0 - 6 <= event.x <= bbox.x1 + 6) and (bbox.y0 - 6 <= event.y <= bbox.y1 + 6):
+                                    hit = True
+                            except Exception:
+                                pass
+                        if hit:
+                            hit_ann = art
+                            break
+            except Exception:
+                pass
+
+            if hit_ann is not None:
+                self._drag_ann = hit_ann
+                self._drag_ann_start = (event.xdata, event.ydata)
+                self._drag_ann_base = hit_ann.get_position()
                 return
 
-            min_dist = float('inf')
+            # Check species / intermediate node hit (in display/pixel coordinates for high precision across OS & DPI)
             closest = None
+            min_dist = float('inf')
+            ev_x, ev_y = event.x, event.y
+            y_span = max(1.0, max(y_all) - min(y_all)) if y_all else 1.0
             for sp in valid:
-                dist = (event.xdata - px[sp["id"]])**2 + (event.ydata - py[sp["id"]])**2
-                if dist < 0.2 and dist < min_dist:
-                    min_dist = dist
-                    closest = sp["id"]
+                sid = sp["id"]
+                xi, yi = px[sid], py[sid]
+                try:
+                    pix_x, pix_y = ax.transData.transform((xi, yi))
+                    if is_classic or is_aks:
+                        pix_x0, _ = ax.transData.transform((xi - bar_w, yi))
+                        half_w = max(abs(pix_x - pix_x0), 16.0)
+                        in_x = abs(ev_x - pix_x) <= (half_w + 8.0)
+                        in_y = abs(ev_y - pix_y) <= max(bar_lw * 0.75 + 10.0, 16.0)
+                        if in_x and in_y:
+                            d_pix = abs(ev_x - pix_x) + abs(ev_y - pix_y)
+                            if d_pix < min_dist:
+                                min_dist = d_pix
+                                closest = sid
+                    else:
+                        d_pix = ((ev_x - pix_x) ** 2 + (ev_y - pix_y) ** 2) ** 0.5
+                        if d_pix <= 22.0 and d_pix < min_dist:
+                            min_dist = d_pix
+                            closest = sid
+                except Exception:
+                    dist = (event.xdata - xi) ** 2 + ((event.ydata - yi) / y_span) ** 2
+                    if dist < 0.05 and dist < min_dist:
+                        min_dist = dist
+                        closest = sid
+
             if closest is not None:
                 self._drag_node = closest
                 self._drag_start = (event.xdata, event.ydata)
@@ -7625,13 +7759,31 @@ class PESPlotModule(BaseModule):
                 kd = next((s.get("kind", "Intermediate") for s in valid if s["id"] == closest), "Intermediate")
                 marker = "o"
                 
-                if is_classic:
+                if is_classic or is_aks:
                     self._ghost_artist, = ax.plot([xi - bar_w, xi + bar_w], [yi, yi], color='#9ca3af', lw=bar_lw, alpha=0.6, zorder=10)
                 else:
                     self._ghost_artist, = ax.plot([xi], [yi], marker=marker, markersize=12, color='#9ca3af', alpha=0.6, zorder=10)
                 fig.canvas.draw_idle()
+                return
+
+            # Click outside any image, label, or node - deselect
+            if self._selected_asset_idx is not None:
+                self._selected_asset_idx = None
+                self._render_plot()
+                return
                 
         def on_motion(event):
+            if getattr(self, "_drag_ann", None) is not None and getattr(event, "inaxes", None):
+                dx = event.xdata - self._drag_ann_start[0]
+                dy = event.ydata - self._drag_ann_start[1]
+                new_x = self._drag_ann_base[0] + dx
+                new_y = self._drag_ann_base[1] + dy
+                self._drag_ann.set_position((new_x, new_y))
+                if getattr(self._drag_ann, "_pes_diff_bar_label", False):
+                    self._drag_ann.xy = (new_x, new_y)
+                fig.canvas.draw_idle()
+                return
+
             if getattr(self, "_drag_step_text_idx", None) is not None and event.inaxes:
                 dx = event.xdata - self._drag_step_text_x0
                 dy = event.ydata - self._drag_step_text_y0
@@ -7734,7 +7886,7 @@ class PESPlotModule(BaseModule):
             dx = event.xdata - self._drag_start[0]
             new_x = px[self._drag_node] + dx
             
-            if is_classic:
+            if is_classic or is_aks:
                 self._ghost_artist.set_xdata([new_x - bar_w, new_x + bar_w])
             else:
                 self._ghost_artist.set_xdata([new_x])
@@ -7765,6 +7917,26 @@ class PESPlotModule(BaseModule):
                     return
             
         def on_release(event):
+            if getattr(self, "_drag_ann", None) is not None:
+                ann = self._drag_ann
+                self._drag_ann = None
+                if getattr(event, "inaxes", None):
+                    dx = event.xdata - self._drag_ann_start[0]
+                    dy = event.ydata - self._drag_ann_start[1]
+                    new_x = self._drag_ann_base[0] + dx
+                    new_y = self._drag_ann_base[1] + dy
+                    if getattr(ann, "_pes_diff_bar_label", False):
+                        self._diff_bar_label_xy = (new_x, new_y)
+                    else:
+                        sid = getattr(ann, "_pes_label_sid", None)
+                        lkind = getattr(ann, "_pes_label_kind", None)
+                        if sid is not None and lkind is not None:
+                            lo = self._label_offsets.setdefault(sid, {})
+                            curr_off = lo.get(lkind, (0.0, 0.0))
+                            lo[lkind] = (curr_off[0] + dx, curr_off[1] + dy)
+                fig.canvas.draw_idle()
+                return
+
             if getattr(event, "inaxes", None):
                 import json
                 needs_save = False
@@ -7934,6 +8106,9 @@ class PESPlotModule(BaseModule):
                 dx = event.xdata - self._drag_start[0]
                 bx, by = self._drag_base
                 # Lock Y coordinate (by) strictly from moving so the numbers never erroneously mutate!
+                sp_obj = next((s for s in valid if s["id"] == self._drag_node), None)
+                key = sp_obj.get("_orig_id", self._drag_node) if sp_obj else self._drag_node
+                self.pt_offsets[key] = (bx + dx, by)
                 self.pt_offsets[self._drag_node] = (bx + dx, by)
                 self._drag_node = None
                 self._render_plot() # Execute topology recalculation exactly once upon drop
@@ -9420,6 +9595,8 @@ class PESPlotModule(BaseModule):
                     if bj is None or not bi.overlaps(bj):
                         continue
                     a = artists[j]
+                    if getattr(a, "_pes_user_moved", False):
+                        continue
                     try:
                         cx_i, cy_i = bi.x0 + 0.5 * bi.width, bi.y0 + 0.5 * bi.height
                         cx_j, cy_j = bj.x0 + 0.5 * bj.width, bj.y0 + 0.5 * bj.height
@@ -9763,7 +9940,8 @@ class PESPlotModule(BaseModule):
                         cmap = LinearSegmentedColormap.from_list("peakmap", [(0.00, "#16a34a"), (0.55, "#fde047"), (1.00, "#ef4444")])
                         import matplotlib.colors as mcolors
                         lc = LineCollection(segments, linewidths=2.8, cmap=cmap, zorder=1, linestyles="-")
-                        lc.set_array([(ly[k] + ly[k+1])/2.0 for k in range(len(segments))])
+                        vals = [(ly[k] + ly[k+1])/2.0 for k in range(len(segments))]
+                        lc.set_array(np.asarray(vals, dtype=float) if np is not None else vals)
                         lc.set_norm(mcolors.Normalize(vmin=y_min, vmax=y_max))
                         ax.add_collection(lc)
                 
@@ -9845,6 +10023,11 @@ class PESPlotModule(BaseModule):
                 self._render_plot()
                 if hasattr(self, "_refresh_list"):
                     self._refresh_list()
+
+        def reset_label_pos():
+            if hasattr(self, "_label_offsets") and sp_id in self._label_offsets:
+                self._label_offsets.pop(sp_id, None)
+                self._render_plot()
                 
         has_out = bool(sp.get("main_out") and os.path.isfile(sp.get("main_out")))
         
@@ -9859,6 +10042,7 @@ class PESPlotModule(BaseModule):
         menu.add_command(label="Edit Name (Plot Only) / LaTeX...", command=edit_temp)
         menu.add_command(label="Change Text Color...", command=change_color)
         menu.add_command(label="Edit Name (Permanent)", command=edit_perm)
+        menu.add_command(label="Reset Label Position", command=reset_label_pos)
         
         menu.tk_popup(x_root, y_root)
 

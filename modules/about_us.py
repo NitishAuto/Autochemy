@@ -351,7 +351,10 @@ class AboutUsModule(BaseModule):
                 im = im.resize((max_width, nh), Image.Resampling.LANCZOS)
             self.logo_img = ImageTk.PhotoImage(im)
         except Exception:
-            self.logo_img = None
+            try:
+                self.logo_img = tk.PhotoImage(file=logo_path)
+            except Exception:
+                self.logo_img = None
         return self.logo_img
 
     def _load_team_images(self):
