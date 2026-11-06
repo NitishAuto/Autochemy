@@ -17,6 +17,12 @@ def install_packages(req_file, window):
         
         if result.returncode == 0:
             success = True
+        else:
+            # Fallback with --break-system-packages for non-venv PEP 668 environments
+            res2 = subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "-r", req_file],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res2.returncode == 0:
+                success = True
     except Exception:
         pass
         

@@ -15,13 +15,15 @@ find_python() {
     for candidate in \
         "$ROOT/.venv/bin/python" \
         "$ROOT/.venv/bin/python3" \
+        "$(command -v python3.13 2>/dev/null || true)" \
         "$(command -v python3.12 2>/dev/null || true)" \
         "$(command -v python3.11 2>/dev/null || true)" \
         "$(command -v python3.10 2>/dev/null || true)" \
+        "$(command -v python3.9 2>/dev/null || true)" \
         "$(command -v python3 2>/dev/null || true)" \
         "$(command -v python 2>/dev/null || true)"; do
         [[ -n "$candidate" && -x "$candidate" ]] || continue
-        if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 10) else 1)' >/dev/null 2>&1; then
+        if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 9) else 1)' >/dev/null 2>&1; then
             PYTHON_CMD="$candidate"
             return 0
         fi
@@ -36,14 +38,14 @@ PYTHON_CMD=""
 if [[ -f "$CFG" ]]; then
     IFS= read -r PYTHON_CMD < "$CFG" || PYTHON_CMD=""
     if [[ -z "$PYTHON_CMD" || ! -x "$PYTHON_CMD" ]] || \
-       ! "$PYTHON_CMD" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 10) else 1)' >/dev/null 2>&1; then
+       ! "$PYTHON_CMD" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 9) else 1)' >/dev/null 2>&1; then
         PYTHON_CMD=""
         rm -f "$CFG"
     fi
 fi
 
 if [[ -z "$PYTHON_CMD" ]] && ! find_python; then
-    echo "Python 3.10+ is not installed."
+    echo "Python 3.9+ is not installed."
     echo "Install it from https://www.python.org/downloads/ and run this script again."
     exit 1
 fi
@@ -54,13 +56,20 @@ if ! "$PYTHON_CMD" -c 'import pandas, numpy, matplotlib, PIL' >/dev/null 2>&1; t
     case "$answer" in
         y|Y|yes|Yes|YES)
             echo "Launching setup..."
+            if [[ "$PYTHON_CMD" != *"$ROOT/.venv"* ]]; then
+                echo "Creating local virtual environment (.venv)..."
+                "$PYTHON_CMD" -m venv "$ROOT/.venv" 2>/dev/null || true
+                if [[ -x "$ROOT/.venv/bin/python" ]]; then
+                    PYTHON_CMD="$ROOT/.venv/bin/python"
+                fi
+            fi
             if ! "$PYTHON_CMD" "$ROOT/install_deps.py" "$REQ"; then
                 echo "Install failed. Check internet and try again."
                 exit 1
             fi
             ;;
         *)
-            echo "Cancelled. Run Start AutoChemy.sh again when ready."
+            echo "Cancelled. Run Start_AutoChemy.sh again when ready."
             exit 1
             ;;
     esac

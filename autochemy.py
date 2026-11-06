@@ -558,18 +558,21 @@ class ORCASoftwareSuite:
         self._build_sidebar_navigation()
 
         if skipped_modules:
-            try:
-                from tkinter import messagebox
-                details = "\n".join(skipped_modules[:6])
-                if len(skipped_modules) > 6:
-                    details += f"\n... and {len(skipped_modules) - 6} more"
-                messagebox.showwarning(
-                    "Some modules were not loaded",
-                    "AutoChemy started, but a few modules could not be loaded.\n\n"
-                    f"{details}"
-                )
-            except Exception:
-                pass
+            def _show_skip_alert():
+                try:
+                    from tkinter import messagebox
+                    details = "\n".join(skipped_modules[:6])
+                    if len(skipped_modules) > 6:
+                        details += f"\n... and {len(skipped_modules) - 6} more"
+                    messagebox.showwarning(
+                        "Some modules were not loaded",
+                        "AutoChemy started, but a few modules could not be loaded.\n\n"
+                        f"{details}",
+                        parent=self.root,
+                    )
+                except Exception:
+                    pass
+            self.root.after(400, _show_skip_alert)
 
     def _switch_module(self, module_name):
         if module_name not in self.modules:
@@ -1048,7 +1051,11 @@ class SplashScreen(tk.Toplevel):
 
     def _load_splash_frames(self, base_dir, target_w, target_h, master):
         """Alternating PNG frames (visible swap); GIF used only if PNG pair is missing."""
-        from PIL import Image, ImageTk
+        try:
+            from PIL import Image, ImageTk
+            has_pil = True
+        except Exception:
+            has_pil = False
 
         frames = []
         delays = []
@@ -1057,18 +1064,31 @@ class SplashScreen(tk.Toplevel):
             path = os.path.join(base_dir, name)
             if not os.path.isfile(path):
                 continue
+            if has_pil:
+                try:
+                    pil_img = Image.open(path).convert("RGBA")
+                    pil_img = self._fit_pil_image(pil_img, target_w, target_h)
+                    frames.append(ImageTk.PhotoImage(pil_img, master=master))
+                    delays.append(320)
+                    continue
+                except Exception:
+                    pass
+            # Fallback to standard Tkinter PhotoImage (native PNG support in Tk 8.6+)
             try:
-                pil_img = Image.open(path).convert("RGBA")
-                pil_img = self._fit_pil_image(pil_img, target_w, target_h)
-                frames.append(ImageTk.PhotoImage(pil_img, master=master))
+                tk_img = tk.PhotoImage(file=path, master=master)
+                frames.append(tk_img)
                 delays.append(320)
             except Exception:
                 pass
         if len(frames) >= 2:
             return frames, delays
+        elif len(frames) == 1:
+            frames.append(frames[0])
+            delays.append(delays[0])
+            return frames, delays
 
         gif_path = os.path.join(base_dir, "AutoChemy.gif")
-        if os.path.isfile(gif_path):
+        if os.path.isfile(gif_path) and has_pil:
             try:
                 im = Image.open(gif_path)
                 seen = []

@@ -39,7 +39,7 @@ REM --- First time only: Python + Python libraries (not xTB/CREST) ---
 title AutoChemy - first-time setup
 
 set "PYCMD="
-for %%P in ("py -3.12" "py -3.11" "py -3.10" "py -3" "python" "python3") do (
+for %%P in ("py -3.13" "py -3.12" "py -3.11" "py -3.10" "py -3.9" "py -3" "python" "python3") do (
     call :try_python %%~P
     if defined PYCMD goto :first_setup
 )
@@ -47,7 +47,7 @@ goto :no_python
 
 :find_python
 set "PYCMD="
-for %%P in ("py -3.12" "py -3.11" "py -3.10" "py -3" "python" "python3") do (
+for %%P in ("py -3.13" "py -3.12" "py -3.11" "py -3.10" "py -3.9" "py -3" "python" "python3") do (
     call :try_python %%~P
     if defined PYCMD exit /b 0
 )
@@ -106,7 +106,7 @@ exit /b 1
 
 :try_python
 set "TRY=%~1"
-%TRY% -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 10) else 1)" >nul 2>nul
+%TRY% -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 9) else 1)" >nul 2>nul
 if errorlevel 1 exit /b 1
 set "PYCMD=%TRY%"
 exit /b 0
